@@ -11,10 +11,23 @@
 '''
 import numpy as np
 import matplotlib as plt
-import tensorflow as tf
+# import tensorflow as tf
+# import torch
 import sys
 from Environment import Client
 def fun(b, **kwargs):
     print(kwargs)
 if __name__ == '__main__':
-    fun(2, example=1)
+    class A:
+        def __init__(self, a, b):
+            self.__a = a
+            self.__b = b
+        def __call__(self):
+            return self.__a, self.__b
+        def __str__(self):
+            return 'a:%s, b:%s' % (self.__a, self.__b)
+
+    b = A(1, 2)
+    c, d = b()
+    print(b)
+
