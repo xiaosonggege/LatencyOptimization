@@ -93,7 +93,13 @@ class Client:
         #初始化任务向量D_allmapclient_i = (x, y, Vx, Vy)
         D_allmapclient = [[oc.axis[0], oc.axis[-1], oc.V[0], oc.V[-1]] for oc in otherclient_vector]
         D_allmapclient = np.array(D_allmapclient)
-
+        all_axis, all_v = D_allmapclient[:, :2]
+        S = np.sum((all_axis - self.axis[np.newaxis, :]) ** 2, axis=1)
+        V_m_add = np.sqrt(np.sum(all_v ** 2, axis=1)) + np.sqrt(self.V ** 2)
+        dis_t = S / V_m_add
+        filter_D = np.where(dis_t - T_epsilon < 0, 1, 0)
+        self.__N = np.sum(filter_D)
+        # self.__vector_D =
     def _calc(self):
         '''
         计算t_local,次方法只用于当前考虑的用户
