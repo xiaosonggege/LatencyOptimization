@@ -114,23 +114,23 @@ class Client:
         :return: None
         """
         # 初始化任务向量D_allmapclient_i = (x, y, Vx, Vy)
-        D_allmapclient = [[oc.axis[0], oc.axis[-1], oc.V[0], oc.V[-1]] for oc in otherclient_vector]
-        D_allmapclient = np.array(D_allmapclient)
-        all_axis, all_v = np.array_split(D_allmapclient, 2, axis=1)
+        D_allMECmapclient = [[oc.axis[0], oc.axis[-1], oc.V[0], oc.V[-1]] for oc in otherclient_vector]
+        D_allMECmapclient = np.array(D_allMECmapclient)
+        all_axis, all_v = np.array_split(D_allMECmapclient, 2, axis=1)
         S = np.sqrt(np.sum((all_axis - self.axis[np.newaxis, :]) ** 2, axis=1))
         V_m_add = np.sqrt(np.sum(all_v ** 2, axis=1)) + np.sqrt(self.V ** 2)
         dis_t = S / V_m_add
         self.__filter_D = np.where(dis_t - T_epsilon < 0, 1, 0)
         self.__N = np.sum(self.__filter_D)
 
-    def _calc(self, vector_alpha, vector_D_allmap):
+    def _calc(self, vector_alpha, vector_D_allMECmap):
         """
         计算t_local,次方法只用于当前考虑的用户
         :param vector_alpha: 用户子任务在本地/MEC端执行的分配比例序列
-        :param vector_D_allmap: 用户需要计算的子任务序列
+        :param vector_D_allMECmap: 用户需要计算的子任务序列
         :return: t_local
         """
-        self.__vector_D = vector_D_allmap[self.__filter_D]
+        self.__vector_D = vector_D_allMECmap[self.__filter_D]
         self.__D_all = np.sum(self.__vector_D)
         D_local = self.__D_all - np.sum(self.__vector_alpha * self.__vector_D)
         return D_local / self.__V_local
@@ -183,15 +183,15 @@ class MECServer:
 
 
 class LatencyMap:
-    def __init__(self, client_num, x_range, y_range, V_range, V_local_range, V_mec_range,
+    def __init__(self, client_num, x_range, y_range, V_range, V_local_range, V_mec,
                  T_epsilon, Q_MEC, vector_alpha, B, P, h, N0):
         """
         :param client_num: 单个MEC服务器可以服务的用户数量
         :param x_range: 单个服务器服务范围的x方向范围
         :param y_range: 单个服务器服务范围的y方向范围
-        :param V_range: 用户移动速度矩阵，shape=[:, 2]
+        :param V_range: 用户移动速度矩阵，shape=(1, 2)
         :param V_local_range: 单个用户本地CPU执行速率均值
-        :param V_mec_range: MEC服务器CPU执行速率
+        :param V_mec: MEC服务器CPU执行速率
         :param T_epsilon: 时间距离阈值
         :param Q_MEC: MEC服务器存储容量最大值
         :param vector_alpha: 子任务量比例分配向量
@@ -205,7 +205,7 @@ class LatencyMap:
         self.__y_range = y_range
         self.__V_range = V_range
         self.__V_local_range = V_local_range
-        self.__V_mec_range = V_mec_range
+        self.__V_mec = V_mec
         self.__T_epsilon = T_epsilon
         self.__Q_MEC = Q_MEC
         self.__vector_alpha = vector_alpha
@@ -228,3 +228,18 @@ class LatencyMap:
         建立静态场景
         """
         rng = np.random.RandomState(0)
+        param_tensor = lambda param_range, param_size: rng.uniform(low=param_range[0], high=param_range[-1], size=param_size)
+        x_client = param_tensor(self.__x_range, self.__client_num)
+        y_client = param_tensor(self.__y_range, self.__client_num)
+        V_client = param_tensor(self.__V_range, param_size=(self.__client_num, 2)) #用户移动速度
+        V_local_client = param_tensor(self.__V_local_range, param_size=self.__client_num)
+        #服务器服务半径为坐标范围对角线半径
+        server_r = np.sqrt((self.__x_range[-1]-self.__x_range[0])**2 + (self.__y_range[-1]-self.__y_range[0])**2)
+        server_x = (self.__x_range[-1] - self.__x_range[0]) / 2
+        server_y = (self.__y_range[-1] - self.__y_range[0]) / 2
+        self.__MEC = MECServer(server_r, self.__V_mec, self.__Q_MEC, server_x, server_y)
+        #生成client_num个用户
+        clients = [Client(V_local=v_local, Vx=vx, Vy=vy, axis_x=x, axis_y=y, MECserverPostion=self.__MEC)
+                   for v_local, vx, vy, x, y in zip(V_local_client, V_client[:, 0], V_client[:, -1], x_client, y_client)]
+        #本用户
+        self.__this_client = clients[-1]
