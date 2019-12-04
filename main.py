@@ -16,6 +16,9 @@ import matplotlib as plt
 import sys
 from Environment import Client
 def fun(b, **kwargs):
+    '''
+    
+    '''
     print(kwargs)
 if __name__ == '__main__':
     class A:
