@@ -10,7 +10,8 @@
 @desc:
 '''
 import numpy as np
-
+from cvxopt import matrix, solvers
+from scipy.optimize import minimize
 
 class Client:
     '''
@@ -224,9 +225,10 @@ class LatencyMap:
         """
         pass
 
-    def build_model(self):
+    def _build_model(self):
         """
         建立静态场景
+        :return T: 总时延
         """
         rng = np.random.RandomState(0)
         param_tensor = lambda param_range, param_size: rng.uniform(low=param_range[0], high=param_range[-1], size=param_size)
@@ -251,6 +253,29 @@ class LatencyMap:
         t_MEC = self.__MEC.calc(alpha_vector=self.__vector_alpha, task_vector=self.__this_client.getvector_D,
                                 B=self.__B, P=self.__P, N0=self.__N0, h=self.__h)
         T = np.max(np.array(t_total, t_MEC))
+        return T
+
+    def solve_problem(self):
+        """
+        'Nelder-Mead':单纯行法
+        'Powell'
+        'CG'
+        'BFGS'
+        'Newton-CG'
+        'L-BFGS-B'
+        'TNC'
+        'COBYLA'
+        'SLSQP'
+        'trust-constr'
+        'dogleg'
+        'trust-ncg'
+        'trust-exact'
+        'trust-krylov'
+        'custom - a callable object'
+        :return None
+        """
+        T = self._build_model()
+
 
 
 
