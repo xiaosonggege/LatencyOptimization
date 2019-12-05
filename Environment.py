@@ -106,7 +106,7 @@ class Client:
         return '用户当前坐标为: (%s, %s), 移动速度为: (%s, %s)' % \
                (self.__axis[0], self.__axis[-1], self.__V[0], self.__V[-1])
 
-    def _calc_tasknum(self, T_epsilon, *otherclient_vector):
+    def calc_tasknum(self, T_epsilon, otherclient_vector):
         """
         用户通过时间阈值筛选需要与哪些用户进行时间距离的计算
         :param T_epsilon: 时间阈值
@@ -123,11 +123,10 @@ class Client:
         self.__filter_D = np.where(dis_t - T_epsilon < 0, 1, 0)
         self.__N = np.sum(self.__filter_D)
 
-    def _calc(self, vector_alpha, vector_D_allMECmap):
+    def calc(self, vector_D_allMECmap):
         """
-        计算t_local,次方法只用于当前考虑的用户
-        :param vector_alpha: 用户子任务在本地/MEC端执行的分配比例序列
-        :param vector_D_allMECmap: 用户需要计算的子任务序列
+        计算t_local,此方法只用于当前考虑的用户
+        :param vector_D_allMECmap: MEC服务器服务范围内的全部用户
         :return: t_local
         """
         self.__vector_D = vector_D_allMECmap[self.__filter_D]
@@ -165,7 +164,7 @@ class MECServer:
         """
         return np.array([self.__server_r, self.__V_MEC, self.__Q, self.__axis[0], self.__axis[-1]])
 
-    def _calc(self, alpha_vector, task_vector, B, P, h, N0):
+    def calc(self, alpha_vector, task_vector, B, P, h, N0):
         """
         计算t_MEC,其中需要计算上行传输速率，忽略下行传输速率
         :param alpha_vector: 子任务量比例分配向量
@@ -184,7 +183,7 @@ class MECServer:
 
 class LatencyMap:
     def __init__(self, client_num, x_range, y_range, V_range, V_local_range, V_mec,
-                 T_epsilon, Q_MEC, vector_alpha, B, P, h, N0):
+                 T_epsilon, Q_MEC, vector_alpha, vector_DMECmap, B, P, h, N0):
         """
         :param client_num: 单个MEC服务器可以服务的用户数量
         :param x_range: 单个服务器服务范围的x方向范围
@@ -195,7 +194,8 @@ class LatencyMap:
         :param T_epsilon: 时间距离阈值
         :param Q_MEC: MEC服务器存储容量最大值
         :param vector_alpha: 子任务量比例分配向量
-        ::param B: 传输信道带宽
+        :param vector_DMECmap: MEC服务器服务范围内的全部用户与该用户之间需要计算的临近性任务量向量
+        :param B: 传输信道带宽
         :param P: 发射功率
         :param h: 信道增益
         :param N0: 高斯白噪声功率谱密度
@@ -209,6 +209,7 @@ class LatencyMap:
         self.__T_epsilon = T_epsilon
         self.__Q_MEC = Q_MEC
         self.__vector_alpha = vector_alpha
+        self.__vector_DMECmap = vector_DMECmap
         self.__B = B
         self.__P = P
         self.__h = h
@@ -243,3 +244,13 @@ class LatencyMap:
                    for v_local, vx, vy, x, y in zip(V_local_client, V_client[:, 0], V_client[:, -1], x_client, y_client)]
         #本用户
         self.__this_client = clients[-1]
+        self.__this_client.getvector_alpha = self.__vector_alpha
+        #筛选该用户需要与哪些其它用户执行临近性任务
+        self.__this_client.calc_tasknum(T_epsilon=self.__T_epsilon, otherclient_vector=clients)
+        t_total = self.__this_client.calc(vector_D_allMECmap=self.__vector_DMECmap)
+        t_MEC = self.__MEC.calc(alpha_vector=self.__vector_alpha, task_vector=self.__this_client.getvector_D,
+                                B=self.__B, P=self.__P, N0=self.__N0, h=self.__h)
+        T = np.max(np.array(t_total, t_MEC))
+
+
+
