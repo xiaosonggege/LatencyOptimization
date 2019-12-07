@@ -33,9 +33,10 @@ def main():
         h=0.8,
         N0=5
     )
-    res = lantencymap.solve_problem(vector_alpha=rng.randn(1, 10), op_function='SLSQP')
+    res = lantencymap.solve_problem(vector_alpha=rng.uniform(low=0, high=1, size=(1, 10)), op_function='SLSQP')
     print(res.fun)
     print(res.x)
+    print(res.success)
 if __name__ == '__main__':
     main()
     # class A:
