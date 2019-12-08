@@ -26,42 +26,20 @@ def main():
         V_local_range=(5, 10),
         V_mec=20,
         T_epsilon=30,
-        Q_MEC=600,
+        Q_MEC=50,
         vector_DMECmap=rng.randint(low=4, high=20, size=10), #和client_num一致
         B=20,
         P=30,
         h=0.8,
         N0=5
     )
-    res = lantencymap.solve_problem(vector_alpha=rng.uniform(low=0, high=1, size=(1, 10)), op_function='SLSQP')
+    vector_alpha_init = rng.uniform(low=0, high=1, size=(1, 10))
+    # print(vector_alpha_init)
+    res = lantencymap.solve_problem(vector_alpha=vector_alpha_init, op_function='SLSQP')
     print(res.fun)
     print(res.x)
     print(res.success)
 if __name__ == '__main__':
     main()
-    # class A:
-    #     def __init__(self):
-    #         self.__a = None
-    #         self.__b = None
-    #     def geta(self):
-    #         return self.__a
-    #     def seta(self, a):
-    #         self.__a = a
-    #     a = property(geta, seta)
-    #     def getb(self):
-    #         return self.__b
-    #     def setb(self, b):
-    #         self.__b = b
-    #     b = property(getb, setb)
-    #     def __call__(self):
-    #         print(self.__a, self.__b)
-    #
-    #     def fun(self):
-    #         print(self.__a + self.__b)
-    #
-    # a = A()
-    # a.a = 2
-    # a.b = 3
-    # a()
-    # a.fun()
+
 

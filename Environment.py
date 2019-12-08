@@ -41,8 +41,8 @@ class Client:
         self.__V_local = V_local
         self.__V = np.array([Vx, Vy])  # 需要可见
         self.__axis = np.array([axis_x, axis_y])  # 需要可见
-        self.__distance2MECserver = np.sqrt((self.__axis[0] - MECserverPostion.getaxis[-1]) ** 2 +
-                                            (self.__axis[-1] - MECserverPostion.getaxis[0]) ** 2)
+        self.__distance2MECserver = np.sqrt((self.__axis[0] - MECserverPostion.getaxis[0]) ** 2 +
+                                            (self.__axis[-1] - MECserverPostion.getaxis[-1]) ** 2)
         self.__movetime_range = 2 * np.sqrt(MECserverPostion.getr ** 2 - self.__distance2MECserver ** 2) / np.sqrt(
             np.sum(self.__V ** 2))
         self.__vector_D = None  # 需要可见
@@ -121,7 +121,9 @@ class Client:
         V_m_add = np.sqrt(np.sum(all_v ** 2, axis=1)) + np.sqrt(np.sum(self.__V ** 2))
         dis_t = S / V_m_add
         self.__filter_D = np.where(dis_t - T_epsilon < 0, 1, 0)
-        self.__N = np.sum(self.__filter_D)
+        self.__filter_D = np.argwhere(self.__filter_D == 1)
+        self.__filter_D = self.__filter_D.ravel()
+        self.__N = self.__filter_D.size
 
     def calc_else_attri(self, vector_D_allMECmap):
         """
@@ -268,7 +270,7 @@ class LatencyMap:
         V_local_client = param_tensor(self.__V_local_range, param_size=self.__client_num)
         # print(V_local_client)
         #服务器服务半径为坐标范围对角线半径
-        server_r = np.sqrt((self.__x_range[-1]-self.__x_range[0])**2 + (self.__y_range[-1]-self.__y_range[0])**2)
+        server_r = 0.5 * np.sqrt((self.__x_range[-1]-self.__x_range[0])**2 + (self.__y_range[-1]-self.__y_range[0])**2)
         server_x = (self.__x_range[-1] - self.__x_range[0]) / 2
         server_y = (self.__y_range[-1] - self.__y_range[0]) / 2
         # print(server_r, server_x, server_y)
@@ -330,10 +332,32 @@ class LatencyMap:
                 {'type': 'ineq',
                  'fun': lambda alphas: self.__this_client.movetime_range - self.__MEC.calc_t_MEC(alphas)},
                 {'type': 'ineq', 'fun': lambda alphas: self.__T_epsilon - fun(alphas)}]
-        for i in range(len(vector_alpha)):
-            cons.append({'type': 'ineq', 'fun': lambda alphas: alphas[i]})
-            cons.append({'type': 'ineq', 'fun': lambda alphas: 1 - alphas[i]})
-
+        # for i in range(vector_alpha.size):
+        #     cons.append({'type': 'ineq', 'fun': lambda alphas: alphas[i]})
+        #     cons.append({'type': 'ineq', 'fun': lambda alphas: - alphas[i] + 1})
+        cons.append({'type': 'ineq', 'fun': lambda alphas: alphas})
+        cons.append({'type': 'ineq', 'fun': lambda alphas: - alphas + 1})
+        # cons.append({'type': 'ineq', 'fun': lambda alphas: alphas[0]})
+        # cons.append({'type': 'ineq', 'fun': lambda alphas: - alphas[0] + 1})
+        # cons.append({'type': 'ineq', 'fun': lambda alphas: alphas[1]})
+        # cons.append({'type': 'ineq', 'fun': lambda alphas: - alphas[1] + 1})
+        # cons.append({'type': 'ineq', 'fun': lambda alphas: alphas[2]})
+        # cons.append({'type': 'ineq', 'fun': lambda alphas: - alphas[2] + 1})
+        # cons.append({'type': 'ineq', 'fun': lambda alphas: alphas[3]})
+        # cons.append({'type': 'ineq', 'fun': lambda alphas: - alphas[3] + 1})
+        # cons.append({'type': 'ineq', 'fun': lambda alphas: alphas[4]})
+        # cons.append({'type': 'ineq', 'fun': lambda alphas: - alphas[4] + 1})
+        # cons.append({'type': 'ineq', 'fun': lambda alphas: alphas[5]})
+        # cons.append({'type': 'ineq', 'fun': lambda alphas: - alphas[5] + 1})
+        # cons.append({'type': 'ineq', 'fun': lambda alphas: alphas[6]})
+        # cons.append({'type': 'ineq', 'fun': lambda alphas: - alphas[6] + 1})
+        # cons.append({'type': 'ineq', 'fun': lambda alphas: alphas[7]})
+        # cons.append({'type': 'ineq', 'fun': lambda alphas: - alphas[7] + 1})
+        # cons.append({'type': 'ineq', 'fun': lambda alphas: alphas[8]})
+        # cons.append({'type': 'ineq', 'fun': lambda alphas: - alphas[8] + 1})
+        # cons.append({'type': 'ineq', 'fun': lambda alphas: alphas[9]})
+        # cons.append({'type': 'ineq', 'fun': lambda alphas: - alphas[9] + 1})
+        # print(len(cons))
         res = minimize(fun, vector_alpha, method=op_function, constraints=cons)
         return res
 
