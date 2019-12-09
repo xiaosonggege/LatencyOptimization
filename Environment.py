@@ -301,7 +301,7 @@ class LatencyMap:
         T = np.max(np.array(t_total, t_MEC))
         return T
 
-    def solve_problem(self, vector_alpha, op_function):
+    def solve_problem(self, vector_alpha, op_function, T_TH):
         """
         :param op_function:
         'Nelder-Mead':单纯行法
@@ -321,6 +321,7 @@ class LatencyMap:
         'custom - a callable object'
         :return None
         :param vector_alpha: 子任务量比例分配向量
+        :param T_TH: 对总时延的约束
         return None
         """
         self._build_model()
@@ -331,32 +332,10 @@ class LatencyMap:
         cons = [{'type': 'ineq', 'fun': lambda alphas: self.__Q_MEC - self.__MEC.calc_D_MEC(alphas)},
                 {'type': 'ineq',
                  'fun': lambda alphas: self.__this_client.movetime_range - self.__MEC.calc_t_MEC(alphas)},
-                {'type': 'ineq', 'fun': lambda alphas: self.__T_epsilon - fun(alphas)}]
-        # for i in range(vector_alpha.size):
-        #     cons.append({'type': 'ineq', 'fun': lambda alphas: alphas[i]})
-        #     cons.append({'type': 'ineq', 'fun': lambda alphas: - alphas[i] + 1})
-        cons.append({'type': 'ineq', 'fun': lambda alphas: alphas})
-        cons.append({'type': 'ineq', 'fun': lambda alphas: - alphas + 1})
-        # cons.append({'type': 'ineq', 'fun': lambda alphas: alphas[0]})
-        # cons.append({'type': 'ineq', 'fun': lambda alphas: - alphas[0] + 1})
-        # cons.append({'type': 'ineq', 'fun': lambda alphas: alphas[1]})
-        # cons.append({'type': 'ineq', 'fun': lambda alphas: - alphas[1] + 1})
-        # cons.append({'type': 'ineq', 'fun': lambda alphas: alphas[2]})
-        # cons.append({'type': 'ineq', 'fun': lambda alphas: - alphas[2] + 1})
-        # cons.append({'type': 'ineq', 'fun': lambda alphas: alphas[3]})
-        # cons.append({'type': 'ineq', 'fun': lambda alphas: - alphas[3] + 1})
-        # cons.append({'type': 'ineq', 'fun': lambda alphas: alphas[4]})
-        # cons.append({'type': 'ineq', 'fun': lambda alphas: - alphas[4] + 1})
-        # cons.append({'type': 'ineq', 'fun': lambda alphas: alphas[5]})
-        # cons.append({'type': 'ineq', 'fun': lambda alphas: - alphas[5] + 1})
-        # cons.append({'type': 'ineq', 'fun': lambda alphas: alphas[6]})
-        # cons.append({'type': 'ineq', 'fun': lambda alphas: - alphas[6] + 1})
-        # cons.append({'type': 'ineq', 'fun': lambda alphas: alphas[7]})
-        # cons.append({'type': 'ineq', 'fun': lambda alphas: - alphas[7] + 1})
-        # cons.append({'type': 'ineq', 'fun': lambda alphas: alphas[8]})
-        # cons.append({'type': 'ineq', 'fun': lambda alphas: - alphas[8] + 1})
-        # cons.append({'type': 'ineq', 'fun': lambda alphas: alphas[9]})
-        # cons.append({'type': 'ineq', 'fun': lambda alphas: - alphas[9] + 1})
+                {'type': 'ineq', 'fun': lambda alphas: T_TH - fun(alphas)},
+                {'type': 'ineq', 'fun': lambda alphas: alphas.T},
+                {'type': 'ineq', 'fun': lambda alphas: - alphas.T + 1}]
+
         # print(len(cons))
         res = minimize(fun, vector_alpha, method=op_function, constraints=cons)
         return res
