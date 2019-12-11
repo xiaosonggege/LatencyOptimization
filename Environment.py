@@ -87,15 +87,16 @@ class Client:
 
     vector_D = property(getvector_D, setvector_D)
 
-    # def getN(self):
-    #     """"""
-    #     return self.__N
-    #
-    # def setN(self, N):
-    #     """"""
-    #     self.__N = N
-    #
-    # N = property(getN, setN)
+    def getN(self):
+        """"""
+        return self.__N
+
+    def setN(self, N):
+        """"""
+        self.__N = N
+
+    N = property(getN, setN)
+
     def getmovetime_range(self):
         """"""
         return self.__movetime_range
@@ -207,7 +208,8 @@ class MECServer:
         :return: t_MEC
         """
         D_MEC = self.calc_D_MEC(alpha_vector)
-        t_up = D_MEC / (self.__B * np.log2(1 + (self.__P * self.__h ** 2) / self.__N0))
+        speed = self.__B * np.log2(1 + (self.__P * self.__h ** 2) / self.__N0)
+        t_up = D_MEC / speed
         t_work = D_MEC / self.__V_MEC
         return t_up + t_work
 
@@ -269,7 +271,7 @@ class LatencyMap:
         server_y = (self.__y_range[-1] - self.__y_range[0]) / 2
         # print(server_r, server_x, server_y)
         self.__MEC = MECServer(server_r, self.__V_mec, self.__Q_MEC, self.__B,
-                               self.__P, self.__N0, self.__h, server_x, server_y)
+                               self.__P, self.__h, self.__N0, server_x, server_y)
         # print(self.__MEC())
         #生成client_num个用户
         self.__clients = [Client(V_local=v_local, Vx=vx, Vy=vy, axis_x=x, axis_y=y, MECserverPostion=self.__MEC)
@@ -319,6 +321,9 @@ class LatencyMap:
         return None
         """
         self._build_model()
+        # print(self.__this_client.N)
+        vector_alpha = vector_alpha[:, :self.__this_client.N]
+        # print(vector_alpha.size)
         fun = lambda alpha : self._calc_T(alpha)
         #约束项函数
         # 约束条件 分为eq 和ineq
