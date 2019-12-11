@@ -10,7 +10,6 @@
 @desc:
 '''
 import numpy as np
-from cvxopt import matrix, solvers
 from scipy.optimize import minimize
 
 class Client:
@@ -88,15 +87,15 @@ class Client:
 
     vector_D = property(getvector_D, setvector_D)
 
-    def getN(self):
-        """"""
-        return self.__N
-
-    def setN(self, N):
-        """"""
-        self.__N = N
-
-    N = property(getN, setN)
+    # def getN(self):
+    #     """"""
+    #     return self.__N
+    #
+    # def setN(self, N):
+    #     """"""
+    #     self.__N = N
+    #
+    # N = property(getN, setN)
     def getmovetime_range(self):
         """"""
         return self.__movetime_range
@@ -152,10 +151,13 @@ class MECServer:
     Q: 边缘服务器存储剩余量
     axis: 边缘服务器位置坐标
     """
-
     @property
     def task_vector(self):
         return self.__task_vector
+    @task_vector.setter
+    def task_vector(self, task_vector):
+        """"""
+        self.__task_vector = task_vector
     @property
     def getaxis(self):
         return self.__axis
@@ -190,14 +192,6 @@ class MECServer:
         """
         print('server_r: %s\nV_MEC: %s\nQ: %s\naxis: %s\ntask_vector: %s\nB: %s\nP: %s\nh: %s\nN0: %s' %
               (self.__server_r, self.__V_MEC, self.__Q, self.__axis, self.__task_vector, self.__B, self.__P, self.__h, self.__N0))
-
-    def settask_vector(self, task_vector):
-        """"""
-        self.__task_vector = task_vector
-    def gettask_vector(self):
-        """"""
-        return self.__task_vector
-    # task_vector = property(gettask_vector, settask_vector)
 
     def calc_D_MEC(self, alpha_vector):
         """
@@ -287,7 +281,7 @@ class LatencyMap:
         #此时该用户的vector_D、D_all属性会被计算出来
         self.__this_client.calc_else_attri(vector_D_allMECmap=self.__vector_DMECmap)
         # self.__this_client()
-        self.__MEC.settask_vector(self.__this_client.getvector_D())
+        self.__MEC.task_vector = self.__this_client.vector_D
 
     def _calc_T(self, vector_alpha):
         """

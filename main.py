@@ -19,22 +19,22 @@ def main():
     """"""
     rng = np.random.RandomState(0)
     lantencymap = LatencyMap(
-        client_num=3000,
+        client_num=2000,
         x_range=(0, 100),
         y_range=(0, 100),
         V_range=(-6, 6),
         V_local_range=(5, 100),
         V_mec=20,
         T_epsilon=100,
-        Q_MEC=500000,
-        vector_DMECmap=rng.randint(low=4, high=10, size=3000), #和client_num一致
+        Q_MEC=5000,
+        vector_DMECmap=rng.randint(low=4, high=10, size=2000), #和client_num一致
         B=20,
         P=30,
         h=0.8,
         N0=5
     )
-    vector_alpha_init = rng.uniform(low=0, high=1, size=(1, 3000))
-    T_TH = 1000
+    vector_alpha_init = rng.uniform(low=0, high=1, size=(1, 2000))
+    T_TH = 10000
     # print(vector_alpha_init)
     res = lantencymap.solve_problem(vector_alpha=vector_alpha_init, op_function='SLSQP', T_TH=T_TH)
     print('最优时延结果为: %s' % res.fun)
