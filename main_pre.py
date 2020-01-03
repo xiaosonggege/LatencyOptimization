@@ -14,7 +14,7 @@ import matplotlib as plt
 # import tensorflow as tf
 # import torch
 import sys
-from Environment import Client, MECServer, LatencyMap
+from Environment_pre import Client, MECServer, LatencyMap
 def main():
     """"""
     rng = np.random.RandomState(0)
