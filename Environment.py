@@ -9,3 +9,9 @@
 @time: 2020/1/3 4:00 下午
 '''
 import numpy as np
+
+class Map:
+    pass
+
+if __name__ == '__main__':
+    pass

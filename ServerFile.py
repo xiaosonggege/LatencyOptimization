@@ -9,3 +9,15 @@
 @time: 2020/1/3 4:01 下午
 '''
 import numpy as np
+
+class Server:
+    pass
+
+class MECServer(Server):
+    pass
+
+class CenterServer(Server):
+    pass
+
+if __name__ == '__main__':
+    pass

@@ -73,7 +73,8 @@ class ObjectClient(Client):
     """
 
     """
-    def __init__(self, R_client, v_x, v_y, x_client, y_client, D_vector, x_server, y_server, alpha_vector):
+    rng = np.random.RandomState(0)
+    def __init__(self, R_client, v_x, v_y, x_client, y_client, D_vector, x_server, y_server, alpha_vector, Q_client):
         """
         目标用户类型构造函数
         :param R_client: 用户本地cpu计算速率
@@ -85,6 +86,7 @@ class ObjectClient(Client):
         :param x_server: 边缘服务器位置x分量
         :param y_server: 边缘服务器位置y分量
         :param alpha_vector: ndarray，子任务序列的权值分配
+        :param Q_client: 用户计算任务量阈值
         """
         super().__init__(R_client, v_x, v_y, x_client, y_client)
         self.__D_vector = D_vector
@@ -92,7 +94,24 @@ class ObjectClient(Client):
         self.__y_server = y_server
         self.__D_vector_length = self.__D_vector.size
         self.__alpha_vector = alpha_vector
+        self.__Q_client = Q_client
+        self.__Q_used = ObjectClient.rng.uniform(low=0, high=1) #根据实际情况修改
+
+    def task_distributing(self):
+        """
+        按权值向量分配本地任务量和需要卸载到MEC服务器端的任务量
+        :return:
+        """
+
+    def _local_calc_time(self):
+        """
+        计算本地计算任务所需时间
+        :return:
+        """
 
 
 if __name__ == '__main__':
-    
+    c1 = Client(1, 2, 3, 4, 5)
+    print(c1.v)
+    c2 = ObjectClient(1, 2, 3, 4, 5, np.array([6, 6]), 7, 8, 9, 10)
+    print(c2.v)
