@@ -70,7 +70,7 @@ class Client:
         self.__x_client, self.__y_client = xy
 
     @property
-    def R(self):
+    def R_client(self):
         """
         返回用户本地cpu计算速率
         :return: 用户本地cpu计算速率
@@ -106,13 +106,13 @@ class ObjectClient(Client):
         :param v_y: 用户移动速度y分量
         :param x_client: 用户位置坐标x分量
         :param y_client: 用户位置坐标y分量
-        :param D_vector: ndarray，待处理的任务序列
+        :param D_vector: ndarray，待处理的任务序列，需根据其它临近用户位置速度信息生成
         :param x_server: 边缘服务器位置x分量
         :param y_server: 边缘服务器位置y分量
         :param alpha_vector: ndarray，子任务序列的权值分配
         :param Q_client: 用户计算任务量阈值
         """
-        super().__init__(R_client, v_x, v_y, x_client, y_client)
+        super().__init__(R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client)
         self.__D_vector = D_vector
         self.__x_server = x_server
         self.__y_server = y_server
@@ -141,7 +141,7 @@ class ObjectClient(Client):
         :return: 本地计算任务所需时间
         """
         self.__D_local = np.sum(self.__D_vector * self.__alpha_vector)
-        return self.__D_local / self.R
+        return self.__D_local / self.R_client
 
 
 if __name__ == '__main__':
