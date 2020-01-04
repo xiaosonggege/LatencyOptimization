@@ -196,7 +196,7 @@ class MECServer:
 
     def calc_D_MEC(self, alpha_vector):
         """
-        计算D_MEC
+        计算D_MEC嗯。申请。学习
         :param alpha_vector: 子任务量比例分配向量
         """
         return np.sum(alpha_vector * self.__task_vector)

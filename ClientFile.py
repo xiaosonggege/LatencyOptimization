@@ -42,6 +42,7 @@ class Client:
         :return: tuple，用户速度矢量
         """
         return self.__v_x, self.__v_y
+
     @v.setter
     def v(self, *v):
         """
@@ -49,8 +50,7 @@ class Client:
         :param v: tuple，用户速度矢量
         :return: None
         """
-        self.__v_x = v[0]
-        self.__v_y = v[-1]
+        self.__v_x, self.__v_y = v
 
     @property
     def axis(self):
@@ -59,6 +59,7 @@ class Client:
         :return: tuple，用户位置矢量
         """
         return self.__x_client, self.__y_client
+
     @axis.setter
     def axis(self, *xy):
         """
@@ -66,12 +67,35 @@ class Client:
         :param xy: tuple，用户位置矢量
         :return: None
         """
-        self.__x_client = xy[0]
-        self.__y_client = xy[-1]
+        self.__x_client, self.__y_client = xy
+
+    @property
+    def R(self):
+        """
+        返回用户本地cpu计算速率
+        :return: 用户本地cpu计算速率
+        """
+        return self.__R_client
 
 class ObjectClient(Client):
     """
-
+    目标用户类型
+    :parameter:
+    R_client: 用户本地cpu计算速率
+    v_x: 用户移动速度x分量
+    v_y: 用户移动速度y分量
+    x_client: 用户位置坐标x分量
+    y_client: 用户位置坐标y分量
+    R_client: 用户本地cpu计算速率
+    v_x: 用户移动速度x分量
+    v_y: 用户移动速度y分量
+    x_client: 用户位置坐标x分量
+    y_client: 用户位置坐标y分量
+    D_vector: ndarray，待处理的任务序列
+    x_server: 边缘服务器位置x分量
+    y_server: 边缘服务器位置y分量
+    alpha_vector: ndarray，子任务序列的权值分配
+    Q_client: 用户计算任务量阈值
     """
     rng = np.random.RandomState(0)
     def __init__(self, R_client, v_x, v_y, x_client, y_client, D_vector, x_server, y_server, alpha_vector, Q_client):
@@ -97,17 +121,27 @@ class ObjectClient(Client):
         self.__Q_client = Q_client
         self.__Q_used = ObjectClient.rng.uniform(low=0, high=1) #根据实际情况修改
 
+    def Q_res(self):
+        """
+        返回目标client当前剩余存储容量
+        :return: 目标client当前剩余存储容量
+        """
+        return self.__Q_client - self.__Q_used
+
     def task_distributing(self):
         """
         按权值向量分配本地任务量和需要卸载到MEC服务器端的任务量
-        :return:
+        :return: 需要卸载的任务量
         """
+        return np.sum(self.__D_vector * (1 - self.__alpha_vector))
 
-    def _local_calc_time(self):
+    def local_calc_time(self):
         """
         计算本地计算任务所需时间
-        :return:
+        :return: 本地计算任务所需时间
         """
+        self.__D_local = np.sum(self.__D_vector * self.__alpha_vector)
+        return self.__D_local / self.R
 
 
 if __name__ == '__main__':
