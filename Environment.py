@@ -9,7 +9,8 @@
 @time: 2020/1/3 4:00 下午
 '''
 import numpy as np
-
+from ClientFile import Client, ObjectClient
+from ServerFile import Server, MECServer, CenterServer
 class Map:
     """
     场景地图
@@ -43,7 +44,7 @@ class Map:
         :param x_map: 地图长度
         :param y_map: 地图宽度
         :param client_num: 地图中client数量
-        :param MECserver_num: 地图中MECserver数量，默认MECserver均匀分布在地图中
+        :param MECserver_num: 地图中MECserver数量，默认MECserver均匀分布在地图中，数量为平方数
         :param R_client_range: float，client中cpu计算速率均值
         :param R_MEC_range: float，MECserver中cpu计算速率均值
         :param vxy_client_range: tuple，client移动速度分量范围
@@ -75,16 +76,32 @@ class Map:
         self.__delta = delta
         #用户速度矩阵
         clients_v = Map.param_tensor(param_range=self.__vxy_client_range, param_size=(self.__client_num, 2))
+
         clients_posx = Map.param_tensor(param_range=(0, self.__x_map), param_size=(self.__client_num, 1))
         clients_posy = Map.param_tensor(param_range=(0, self.__y_map), param_size=(self.__client_num, 1))
         #用户位置矩阵
         clients_pos = np.hstack((clients_posx, clients_posy))
+
         #用户cpu计算速率向量
         clients_R_client = Map.param_tensor_gaussian(mean=self.__R_client_range, var=1, param_size=self.__client_num)
+
         #MECserver的cpu计算速率向量
         MECservers_R_MEC = Map.param_tensor_gaussian(mean = self.__R_MEC_range, var=1, param_size=self.__MECserver_num)
 
+        MECservers_posx = np.linspace(0, self.__x_map, 2 + int(np.sqrt(self.__MECserver_num)))[1:-1]
+        MECservers_posy = np.linspace(0, self.__y_map, 2 + int(np.sqrt(self.__MECserver_num)))[1:-1]
+        #MECserver的位置坐标
+        MECservers_pos = np.hstack((MECservers_posx[np.newaxis, :], MECservers_posy[np.newaxis, :]))
 
+        #MECserver序列
+        MECserver_vector = [MECServer(x_server=x_server, y_server=y_server, service_r=service_r,
+                                      R_MEC=R_MEC, Q_MEC=Q_MEC, r_edge_th=r_edge_th) for x_server, y_server, service_r,
+                            R_MEC, Q_MEC, r_edge_th in zip(MECservers_pos, [])]
+
+        #子任务序列的权值分配
+        self.__alpha_vector = Map.param_tensor(param_range=(0, 1), param_size=[1, self.__client_num])
+
+        #
 
 if __name__ == '__main__':
     pass

@@ -118,16 +118,18 @@ class MECServer(Server):
         """
         return self.__Q_MEC - self.__Q_used
 
-    def is_obclient_at_edge(self, obclient):
+    def client_pos_to_MECserver(self, client):
         """
-        判断目标client是否处在MEC服务器边缘区域
-        :param obclient: 目标client
-        :return: bool
+        判断client处在MEC服务器的位置区域
+        :param client: 目标client
+        :return: int，1表示client处于MEC服务器中非边缘处，0表示client处于MEC服务器边缘处，-1表示client不处于MEC服务器的服务范围内
         """
-        dis = np.sqrt(np.sum((np.array(obclient.axis) - np.array(self.axis)) ** 2))
+        dis = np.sqrt(np.sum((np.array(client.axis) - np.array(self.axis)) ** 2))
         if dis <= self.__r_edge_th:
-            return False
-        return True
+            return 1
+        elif dis > self.__r_edge_th and dis <= self.__service_r:
+            return 0
+        return -1
 
     def MEC_calc_time(self, D_MEC):
         """
