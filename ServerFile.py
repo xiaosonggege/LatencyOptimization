@@ -142,6 +142,9 @@ class MECServer(Server):
 class CenterServer(Server):
     """
     中心服务器
+    x_server: 服务器位置坐标x分量
+    y_server: 服务器位置坐标y分量
+    T_epsilon: 时延阈值
     """
     def __init__(self, x_server, y_server, T_epsilon):
         """
@@ -164,10 +167,15 @@ class CenterServer(Server):
         #计算中心服务器的服务范围半径
         self.__server_r = (v_max_mod + v_obclient_mod) * self.__T_epsilon
         #从地图中所有client中筛选出需要进行临近检测的client组成列表返回
-        position_clients =
+        position_clients = np.array([client.axis for client in self.client_vector])
+        clients_satisfied_index = np.where(np.sum((position_clients - np.array(obclient.axis)) ** 2, axis=1)
+                                     < self.__server_r, 1, 0)
+        clients_satisfied = []
+        for i in clients_satisfied_index:
+            clients_satisfied.append(self.client_vector[i])
+        return clients_satisfied
+
 
 if __name__ == '__main__':
-    def fun(*a):
-        p = np.array(a)
-        print(np.sum(p))
-    fun(2, 3, 4)
+    s1 = Server(1, 2)
+    s2 = MECServer(1, 2, 3, 4, 5, 6)

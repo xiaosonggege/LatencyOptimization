@@ -11,7 +11,11 @@
 import numpy as np
 
 class Map:
-    pass
+    """
+    场景地图
+
+    """
+
 
 if __name__ == '__main__':
     pass
