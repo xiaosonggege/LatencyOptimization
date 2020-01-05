@@ -31,6 +31,11 @@ class Map:
     h: 信道增益
     delta: 发射功率随距离信源距离的衰减系数
     """
+    rng = np.random.RandomState(0)
+    param_tensor = lambda param_range, param_size: Map.rng.uniform(low=param_range[0], high=param_range[-1],
+                                                               size=param_size)
+    param_tensor_gaussian = lambda mean, var, param_size: Map.rng.normal(loc=mean, scale=var, size=param_size)
+
     def __init__(self, x_map, y_map, client_num, MECserver_num, R_client_range, R_MEC_range,
                  vxy_client_range, T_epsilon, Q_client, Q_MEC, r_edge_th, B, N0, P, h, delta):
         """
@@ -39,9 +44,9 @@ class Map:
         :param y_map: 地图宽度
         :param client_num: 地图中client数量
         :param MECserver_num: 地图中MECserver数量，默认MECserver均匀分布在地图中
-        :param R_client_range: client中cpu计算速率均值
-        :param R_MEC_range: MECserver中cpu计算速率均值
-        :param vxy_client_range: client移动速度分量范围
+        :param R_client_range: float，client中cpu计算速率均值
+        :param R_MEC_range: float，MECserver中cpu计算速率均值
+        :param vxy_client_range: tuple，client移动速度分量范围
         :param T_epsilon: 时间阈值
         :param Q_client: client计算任务量阈值
         :param Q_MEC: MECserver计算任务量阈值
@@ -52,7 +57,6 @@ class Map:
         :param h: 信道增益
         :param delta: 发射功率随距离信源距离的衰减系数
         """
-        rng = np.random.RandomState(0)
         self.__x_map = x_map
         self.__y_map = y_map
         self.__client_num = client_num
@@ -69,6 +73,17 @@ class Map:
         self.__P = P
         self.__h = h
         self.__delta = delta
+        #用户速度矩阵
+        clients_v = Map.param_tensor(param_range=self.__vxy_client_range, param_size=(self.__client_num, 2))
+        clients_posx = Map.param_tensor(param_range=(0, self.__x_map), param_size=(self.__client_num, 1))
+        clients_posy = Map.param_tensor(param_range=(0, self.__y_map), param_size=(self.__client_num, 1))
+        #用户位置矩阵
+        clients_pos = np.hstack((clients_posx, clients_posy))
+        #用户cpu计算速率向量
+        clients_R_client = Map.param_tensor_gaussian(mean=self.__R_client_range, var=1, param_size=self.__client_num)
+        #MECserver的cpu计算速率向量
+        MECservers_R_MEC = Map.param_tensor_gaussian(mean = self.__R_MEC_range, var=1, param_size=self.__MECserver_num)
+
 
 
 if __name__ == '__main__':
