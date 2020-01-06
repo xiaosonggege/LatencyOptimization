@@ -48,8 +48,8 @@ class Map:
         clients_pos = np.array([client.axis for client in client_vector])
         dis_between_clients_and_MECserver = np.sqrt(np.sum((clients_pos - np.array(MECserver.axis)) ** 2, axis=1))
         dis_between_clients_and_MECserver_index = np.argwhere(dis_between_clients_and_MECserver < MECserver.service_r).ravel()
-        clients_for_MECserver = client_vector[dis_between_clients_and_MECserver_index]
-        MECserver.client_vector = clients_for_MECserver
+        clients_for_MECserver = (client_vector[index] for index in dis_between_clients_and_MECserver_index)
+        MECserver.client_vector = list(clients_for_MECserver)
 
 
     def __init__(self, x_map, y_map, client_num, MECserver_num, R_client_mean, R_MEC_mean,
@@ -153,24 +153,29 @@ class Map:
         min_distance_of_obc_MEC = np.min(distance_of_obclient_and_MECservers)
         min_distance_of_obc_MEC_index = np.argwhere(distance_of_obclient_and_MECservers==min_distance_of_obc_MEC)
         min_distance_of_obc_MEC_index = min_distance_of_obc_MEC_index.ravel()
-        MECservers_for_obclient = self.__MECserver_vector[min_distance_of_obc_MEC_index]
+        MECservers_for_obclient = [self.__MECserver_vector[index] for index in min_distance_of_obc_MEC_index]
 
         #如果存在多个与obclient距离最小的MECserver，则根据MEC服务器当前时间服务器剩余存储容量
         if len(MECservers_for_obclient) > 1:
             MECservers_Q_res = np.array([MECserver.Q_res() for MECserver in MECservers_for_obclient])
             min_MECservers_Q_res_index = np.argwhere(MECservers_Q_res == np.min(MECservers_Q_res)).ravel()
-            MECservers_for_obclient = MECservers_for_obclient[min_MECservers_Q_res_index]
+            MECservers_for_obclient = [MECservers_for_obclient[index] for index in min_MECservers_Q_res_index]
         else:
             MECserver_for_obclient = MECservers_for_obclient[0]
 
         #如果MECserver仍不唯一，则服务范围内client个数评判目标client选择哪个MEC服务器为其服务
         if len(MECservers_for_obclient) > 1:
-            pass #改
+            for MECserver in MECservers_for_obclient:
+                Map.clientsForMECserver(client_vector=self.__client_vector, MECserver=MECserver)
+            clients_num = np.array([len(MECserver.client_vector) for MECserver in MECservers_for_obclient])
+            min_clients_num_index = np.argwhere(clients_num == np.min(clients_num)).ravel()
+            MECservers_for_obclient = [MECservers_for_obclient[index] for index in min_clients_num_index]
         else:
             MECserver_for_obclient = MECservers_for_obclient[0]
         #如果MECserver仍不唯一，则随机选取一个
         if len(MECservers_for_obclient) > 1:
             MECserver_for_obclient = Map.rng.choice(a=MECservers_for_obclient, size=1, replace=False)
+
         # obclient
         self.__obclient = ObjectClient(
             R_client=R_client,
