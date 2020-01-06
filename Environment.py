@@ -19,8 +19,8 @@ class Map:
     y_map: 地图宽度
     client_num: 地图中client数量
     MECserver_num: 地图中MECserver数量，默认MECserver均匀分布在地图中
-    R_client_range: client中cpu计算速率均值
-    R_MEC_range: MECserver中cpu计算速率均值
+    R_client_mean: client中cpu计算速率均值
+    R_MEC_mean: MECserver中cpu计算速率均值
     vxy_client_range: client移动速度分量范围
     T_epsilon: 时间阈值
     Q_client: client计算任务量阈值
@@ -37,7 +37,7 @@ class Map:
                                                                size=param_size)
     param_tensor_gaussian = lambda mean, var, param_size: Map.rng.normal(loc=mean, scale=var, size=param_size)
 
-    def __init__(self, x_map, y_map, client_num, MECserver_num, R_client_range, R_MEC_range,
+    def __init__(self, x_map, y_map, client_num, MECserver_num, R_client_mean, R_MEC_mean,
                  vxy_client_range, T_epsilon, Q_client, Q_MEC, server_r, r_edge_th, B, N0, P, h, delta):
         """
         场景地图构造函数
@@ -45,8 +45,8 @@ class Map:
         :param y_map: 地图宽度
         :param client_num: 地图中client数量
         :param MECserver_num: 地图中MECserver数量，默认MECserver均匀分布在地图中，数量为平方数
-        :param R_client_range: float，client中cpu计算速率均值
-        :param R_MEC_range: float，MECserver中cpu计算速率均值
+        :param R_client_mean: float，client中cpu计算速率均值
+        :param R_MEC_mean: float，MECserver中cpu计算速率均值
         :param vxy_client_range: tuple，client移动速度分量范围
         :param T_epsilon: 时间阈值
         :param Q_client: client计算任务量阈值
@@ -63,8 +63,8 @@ class Map:
         self.__y_map = y_map
         self.__client_num = client_num
         self.__MECserver_num = MECserver_num
-        self.__R_client_range = R_client_range
-        self.__R_MEC_range = R_MEC_range
+        self.__R_client_mean = R_client_mean
+        self.__R_MEC_mean = R_MEC_mean
         self.__vxy_client_range = vxy_client_range
         self.__T_epsilon = T_epsilon
         self.__Q_client = Q_client
@@ -85,7 +85,7 @@ class Map:
         self.__clients_pos = np.hstack((clients_posx, clients_posy))
 
         #用户cpu计算速率向量
-        clients_R_client = Map.param_tensor_gaussian(mean=self.__R_client_range, var=1, param_size=self.__client_num-1)
+        clients_R_client = Map.param_tensor_gaussian(mean=self.__R_client_mean, var=1, param_size=self.__client_num-1)
         # 子任务序列的权值分配
         self.__alpha_vector = Map.param_tensor(param_range=(0, 1), param_size=[1, self.__client_num-1])
 
@@ -101,7 +101,7 @@ class Map:
                                 )]
 
         #MECserver的cpu计算速率向量
-        MECservers_R_MEC = Map.param_tensor_gaussian(mean = self.__R_MEC_range, var=1, param_size=self.__MECserver_num)
+        MECservers_R_MEC = Map.param_tensor_gaussian(mean = self.__R_MEC_mean, var=1, param_size=self.__MECserver_num)
 
         MECservers_posx = np.linspace(0, self.__x_map, 2 + int(np.sqrt(self.__MECserver_num)))[1:-1]
         MECservers_posy = np.linspace(0, self.__y_map, 2 + int(np.sqrt(self.__MECserver_num)))[1:-1]
@@ -132,23 +132,30 @@ class Map:
         :return: None
         """
         #根据目标client的位置选择MECserver
-        #目标client选择距离它最近的一个MEC服务器作为为其服务的MEC服务器，
-        # 如果存在多个MEC服务器与目标client距离一样，则根据MEC服务器当前时间服务器剩余存储容量
-        # （MEC服务器存储容量阈值与当前已用存储容量的差值，此差值恒正）以及服务范围内client个数评判目标client选择哪个MEC服务器为其服务。
-
+        MECserver_for_obclient = None
         #找出与obclient距离最小的MECserver(序列)
         distance_of_obclient_and_MECservers = np.sum(self.__MECservers_pos - np.array([x_client, y_client]), axis=1)
         min_distance_of_obc_MEC = np.min(distance_of_obclient_and_MECservers)
         min_distance_of_obc_MEC_index = np.argwhere(distance_of_obclient_and_MECservers==min_distance_of_obc_MEC)
         min_distance_of_obc_MEC_index = min_distance_of_obc_MEC_index.ravel()
-        MECservers_for_obclient_first = self.__MECserver_vector[min_distance_of_obc_MEC_index]
+        MECservers_for_obclient = self.__MECserver_vector[min_distance_of_obc_MEC_index]
 
         #如果存在多个与obclient距离最小的MECserver，则根据MEC服务器当前时间服务器剩余存储容量
+        if len(MECservers_for_obclient) > 1:
+            MECservers_Q_res = np.array([MECserver.Q_res() for MECserver in MECservers_for_obclient])
+            min_MECservers_Q_res_index = np.argwhere(MECservers_Q_res == np.min(MECservers_Q_res)).ravel()
+            MECservers_for_obclient = MECservers_for_obclient[min_MECservers_Q_res_index]
+        else:
+            MECserver_for_obclient = MECservers_for_obclient[0]
 
         #如果MECserver仍不唯一，则服务范围内client个数评判目标client选择哪个MEC服务器为其服务
-
+        if len(MECservers_for_obclient) > 1:
+            pass #改
+        else:
+            MECserver_for_obclient = MECservers_for_obclient[0]
         #如果MECserver仍不唯一，则随机选取一个
-
+        if len(MECservers_for_obclient) > 1:
+            MECserver_for_obclient = Map.rng.choice(a=MECservers_for_obclient, size=1, replace=False)
         # obclient
         self.__obclient = ObjectClient(
             R_client=R_client,
