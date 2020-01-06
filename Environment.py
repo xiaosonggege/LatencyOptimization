@@ -38,7 +38,7 @@ class Map:
     param_tensor_gaussian = lambda mean, var, param_size: Map.rng.normal(loc=mean, scale=var, size=param_size)
 
     def __init__(self, x_map, y_map, client_num, MECserver_num, R_client_range, R_MEC_range,
-                 vxy_client_range, T_epsilon, Q_client, Q_MEC, r_edge_th, B, N0, P, h, delta):
+                 vxy_client_range, T_epsilon, Q_client, Q_MEC, server_r, r_edge_th, B, N0, P, h, delta):
         """
         场景地图构造函数
         :param x_map: 地图长度
@@ -51,6 +51,7 @@ class Map:
         :param T_epsilon: 时间阈值
         :param Q_client: client计算任务量阈值
         :param Q_MEC: MECserver计算任务量阈值
+        :param server_r: 服务器的服务范围半径
         :param r_edge_th: 服务范围边缘范围阈值
         :param B: 无线信道带宽
         :param N0: 高斯白噪声单边功率谱密度
@@ -68,6 +69,7 @@ class Map:
         self.__T_epsilon = T_epsilon
         self.__Q_client = Q_client
         self.__Q_MEC = Q_MEC
+        self.__server_r = server_r
         self.__r_edge_th = r_edge_th
         self.__B = B
         self.__N0 = N0
@@ -91,12 +93,19 @@ class Map:
         MECservers_posx = np.linspace(0, self.__x_map, 2 + int(np.sqrt(self.__MECserver_num)))[1:-1]
         MECservers_posy = np.linspace(0, self.__y_map, 2 + int(np.sqrt(self.__MECserver_num)))[1:-1]
         #MECserver的位置坐标
-        MECservers_pos = np.hstack((MECservers_posx[np.newaxis, :], MECservers_posy[np.newaxis, :]))
+        MECservers_pos = np.array([(x, y) for x in MECservers_posx for y in MECservers_posy])
 
         #MECserver序列
-        MECserver_vector = [MECServer(x_server=x_server, y_server=y_server, service_r=service_r,
-                                      R_MEC=R_MEC, Q_MEC=Q_MEC, r_edge_th=r_edge_th) for x_server, y_server, service_r,
-                            R_MEC, Q_MEC, r_edge_th in zip(MECservers_pos, [])]
+        MECserver_vector = [MECServer(x_server=x_server, y_server=y_server, service_r=service_r, R_MEC=R_MEC,
+                                      Q_MEC=Q_MEC, r_edge_th=r_edge_th)
+                            for x_server, y_server, service_r, R_MEC, Q_MEC, r_edge_th in
+                            zip(
+                                np.split(MECservers_pos, indices_or_sections=2, axis=1),
+                                np.ones(shape=self.__MECserver_num) * self.__server_r,
+                                MECservers_R_MEC,
+                                np.ones(shape=self.__MECserver_num) * self.__Q_MEC,
+                                np.ones(shape=self.__MECserver_num) * self.__r_edge_th
+                            )]
 
         #子任务序列的权值分配
         self.__alpha_vector = Map.param_tensor(param_range=(0, 1), param_size=[1, self.__client_num])
