@@ -139,7 +139,15 @@ class Map:
         #找出与obclient距离最小的MECserver(序列)
         distance_of_obclient_and_MECservers = np.sum(self.__MECservers_pos - np.array([x_client, y_client]), axis=1)
         min_distance_of_obc_MEC = np.min(distance_of_obclient_and_MECservers)
-        min_distance_of_obc_MEC_index = np.where(distance_of_obclient_and_MECservers==min_distance_of_obc_MEC, 1, 0)
+        min_distance_of_obc_MEC_index = np.argwhere(distance_of_obclient_and_MECservers==min_distance_of_obc_MEC)
+        min_distance_of_obc_MEC_index = min_distance_of_obc_MEC_index.ravel()
+        MECservers_for_obclient_first = self.__MECserver_vector[min_distance_of_obc_MEC_index]
+
+        #如果存在多个与obclient距离最小的MECserver，则根据MEC服务器当前时间服务器剩余存储容量
+
+        #如果MECserver仍不唯一，则服务范围内client个数评判目标client选择哪个MEC服务器为其服务
+
+        #如果MECserver仍不唯一，则随机选取一个
 
         # obclient
         self.__obclient = ObjectClient(
