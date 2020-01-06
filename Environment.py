@@ -188,5 +188,11 @@ class Map:
 
         )
 
+    def transmitting_time(self):
+        """
+        计算无线信道的传输时延
+        :return: 无线信道传输时延
+        """
+
 if __name__ == '__main__':
     pass
