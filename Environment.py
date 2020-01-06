@@ -37,6 +37,21 @@ class Map:
                                                                size=param_size)
     param_tensor_gaussian = lambda mean, var, param_size: Map.rng.normal(loc=mean, scale=var, size=param_size)
 
+    @staticmethod
+    def clientsForMECserver(client_vector, MECserver):
+        """
+        确定服务器服务范围内的用户
+        :param client_vector: 地图中的所有用户
+        :param MECserver: 服务器对象
+        :return: None
+        """
+        clients_pos = np.array([client.axis for client in client_vector])
+        dis_between_clients_and_MECserver = np.sqrt(np.sum((clients_pos - np.array(MECserver.axis)) ** 2, axis=1))
+        dis_between_clients_and_MECserver_index = np.argwhere(dis_between_clients_and_MECserver < MECserver.service_r).ravel()
+        clients_for_MECserver = client_vector[dis_between_clients_and_MECserver_index]
+        MECserver.client_vector = clients_for_MECserver
+
+
     def __init__(self, x_map, y_map, client_num, MECserver_num, R_client_mean, R_MEC_mean,
                  vxy_client_range, T_epsilon, Q_client, Q_MEC, server_r, r_edge_th, B, N0, P, h, delta):
         """
@@ -134,7 +149,7 @@ class Map:
         #根据目标client的位置选择MECserver
         MECserver_for_obclient = None
         #找出与obclient距离最小的MECserver(序列)
-        distance_of_obclient_and_MECservers = np.sum(self.__MECservers_pos - np.array([x_client, y_client]), axis=1)
+        distance_of_obclient_and_MECservers = np.sqrt(np.sum((self.__MECservers_pos - np.array([x_client, y_client])) ** 2, axis=1))
         min_distance_of_obc_MEC = np.min(distance_of_obclient_and_MECservers)
         min_distance_of_obc_MEC_index = np.argwhere(distance_of_obclient_and_MECservers==min_distance_of_obc_MEC)
         min_distance_of_obc_MEC_index = min_distance_of_obc_MEC_index.ravel()
