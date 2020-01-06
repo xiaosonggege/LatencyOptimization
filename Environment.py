@@ -82,7 +82,7 @@ class Map:
         clients_posx = Map.param_tensor(param_range=(0, self.__x_map), param_size=(self.__client_num-1, 1))
         clients_posy = Map.param_tensor(param_range=(0, self.__y_map), param_size=(self.__client_num-1, 1))
         #用户位置矩阵
-        # clients_pos = np.hstack((clients_posx, clients_posy))
+        self.__clients_pos = np.hstack((clients_posx, clients_posy))
 
         #用户cpu计算速率向量
         clients_R_client = Map.param_tensor_gaussian(mean=self.__R_client_range, var=1, param_size=self.__client_num-1)
@@ -106,15 +106,15 @@ class Map:
         MECservers_posx = np.linspace(0, self.__x_map, 2 + int(np.sqrt(self.__MECserver_num)))[1:-1]
         MECservers_posy = np.linspace(0, self.__y_map, 2 + int(np.sqrt(self.__MECserver_num)))[1:-1]
         #MECserver的位置坐标
-        MECservers_pos = np.array([(x, y) for x in MECservers_posx for y in MECservers_posy])
+        self.__MECservers_pos = np.array([(x, y) for x in MECservers_posx for y in MECservers_posy])
 
         #MECserver序列
         self.__MECserver_vector = [MECServer(x_server=x_server, y_server=y_server, service_r=service_r, R_MEC=R_MEC,
                                       Q_MEC=Q_MEC, r_edge_th=r_edge_th)
                             for x_server, y_server, service_r, R_MEC, Q_MEC, r_edge_th in
                             zip(
-                                MECservers_pos[:, 0],
-                                MECservers_pos[:, -1],
+                                self.__MECservers_pos[:, 0],
+                                self.__MECservers_pos[:, -1],
                                 np.ones(shape=self.__MECserver_num) * self.__server_r,
                                 MECservers_R_MEC,
                                 np.ones(shape=self.__MECserver_num) * self.__Q_MEC,
@@ -136,6 +136,8 @@ class Map:
         # 如果存在多个MEC服务器与目标client距离一样，则根据MEC服务器当前时间服务器剩余存储容量
         # （MEC服务器存储容量阈值与当前已用存储容量的差值，此差值恒正）以及服务范围内client个数评判目标client选择哪个MEC服务器为其服务。
 
+        #找出与obclient距离最小的MECserver(序列)
+        distance_of_obclient_and_MECservers = np.sum(self.__MECservers_pos - np.array([x_client, y_client]), axis=1)
 
         # obclient
         self.__obclient = ObjectClient(
