@@ -77,15 +77,28 @@ class Map:
         self.__h = h
         self.__delta = delta
         #用户速度矩阵
-        clients_v = Map.param_tensor(param_range=self.__vxy_client_range, param_size=(self.__client_num, 2))
+        clients_v = Map.param_tensor(param_range=self.__vxy_client_range, param_size=(self.__client_num-1, 2))
 
-        clients_posx = Map.param_tensor(param_range=(0, self.__x_map), param_size=(self.__client_num, 1))
-        clients_posy = Map.param_tensor(param_range=(0, self.__y_map), param_size=(self.__client_num, 1))
+        clients_posx = Map.param_tensor(param_range=(0, self.__x_map), param_size=(self.__client_num-1, 1))
+        clients_posy = Map.param_tensor(param_range=(0, self.__y_map), param_size=(self.__client_num-1, 1))
         #用户位置矩阵
-        clients_pos = np.hstack((clients_posx, clients_posy))
+        # clients_pos = np.hstack((clients_posx, clients_posy))
 
         #用户cpu计算速率向量
-        clients_R_client = Map.param_tensor_gaussian(mean=self.__R_client_range, var=1, param_size=self.__client_num)
+        clients_R_client = Map.param_tensor_gaussian(mean=self.__R_client_range, var=1, param_size=self.__client_num-1)
+        # 子任务序列的权值分配
+        self.__alpha_vector = Map.param_tensor(param_range=(0, 1), param_size=[1, self.__client_num-1])
+
+        #client序列
+        self.__client_vector = [Client(R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client)
+                                for R_client, v_x, v_y, x_client, y_client in
+                                zip(
+                                    clients_R_client,
+                                    clients_v[:, 0],
+                                    clients_v[:, -1],
+                                    clients_posx,
+                                    clients_posy
+                                )]
 
         #MECserver的cpu计算速率向量
         MECservers_R_MEC = Map.param_tensor_gaussian(mean = self.__R_MEC_range, var=1, param_size=self.__MECserver_num)
@@ -96,21 +109,45 @@ class Map:
         MECservers_pos = np.array([(x, y) for x in MECservers_posx for y in MECservers_posy])
 
         #MECserver序列
-        MECserver_vector = [MECServer(x_server=x_server, y_server=y_server, service_r=service_r, R_MEC=R_MEC,
+        self.__MECserver_vector = [MECServer(x_server=x_server, y_server=y_server, service_r=service_r, R_MEC=R_MEC,
                                       Q_MEC=Q_MEC, r_edge_th=r_edge_th)
                             for x_server, y_server, service_r, R_MEC, Q_MEC, r_edge_th in
                             zip(
-                                np.split(MECservers_pos, indices_or_sections=2, axis=1),
+                                MECservers_pos[:, 0],
+                                MECservers_pos[:, -1],
                                 np.ones(shape=self.__MECserver_num) * self.__server_r,
                                 MECservers_R_MEC,
                                 np.ones(shape=self.__MECserver_num) * self.__Q_MEC,
                                 np.ones(shape=self.__MECserver_num) * self.__r_edge_th
                             )]
 
-        #子任务序列的权值分配
-        self.__alpha_vector = Map.param_tensor(param_range=(0, 1), param_size=[1, self.__client_num])
+    def obclient_producing(self, R_client, v_x, v_y, x_client, y_client):
+        """
+        目标client生成
+        :param R_client: 目标用户本地cpu计算速率
+        :param v_x: 目标用户移动速度x分量
+        :param v_y: 目标用户移动速度y分量
+        :param x_client: 目标用户位置坐标x分量
+        :param y_client: 目标用户位置坐标y分量
+        :return: None
+        """
+        #根据目标client的位置选择MECserver
+        #目标client选择距离它最近的一个MEC服务器作为为其服务的MEC服务器，
+        # 如果存在多个MEC服务器与目标client距离一样，则根据MEC服务器当前时间服务器剩余存储容量
+        # （MEC服务器存储容量阈值与当前已用存储容量的差值，此差值恒正）以及服务范围内client个数评判目标client选择哪个MEC服务器为其服务。
 
-        #
+
+        # obclient
+        self.__obclient = ObjectClient(
+            R_client=R_client,
+            v_x=v_x,
+            v_y=v_y,
+            x_client=x_client,
+            y_client=y_client,
+            Q_client=self.__Q_client,
+            alpha_vector=self.__alpha_vector
+
+        )
 
 if __name__ == '__main__':
     pass
