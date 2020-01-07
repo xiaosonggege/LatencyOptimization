@@ -52,7 +52,6 @@ class Map:
         clients_for_MECserver = (client_vector[index] for index in dis_between_clients_and_MECserver_index)
         MECserver.client_vector = list(clients_for_MECserver)
 
-
     def __init__(self, x_map, y_map, client_num, MECserver_num, R_client_mean, R_MEC_mean,
                  vxy_client_range, T_epsilon, Q_client, Q_MEC, server_r, r_edge_th, B, N0, P, h, delta):
         """
@@ -196,7 +195,8 @@ class Map:
         计算无线信道的传输时延
         :return: 无线信道传输时延
         """
-        
+        pass #改
+
 
 if __name__ == '__main__':
     pass
