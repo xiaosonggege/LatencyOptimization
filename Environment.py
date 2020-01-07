@@ -10,6 +10,7 @@
 '''
 import numpy as np
 import sympy
+from scipy.optimize import minimize
 from ClientFile import Client, ObjectClient
 from ServerFile import Server, MECServer, CenterServer
 class Map:
