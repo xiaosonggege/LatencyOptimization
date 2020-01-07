@@ -91,6 +91,7 @@ class Map:
         self.__P = P
         self.__h = h
         self.__delta = delta
+        self.__CenterMECserver = CenterServer(x_server=x_map * 2, y_server=y_map * 2, T_epsilon=self.__T_epsilon)
         #用户速度矩阵
         clients_v = Map.param_tensor(param_range=self.__vxy_client_range, param_size=(self.__client_num-1, 2))
 
@@ -147,7 +148,7 @@ class Map:
         :return: None
         """
         #根据目标client的位置选择MECserver
-        MECserver_for_obclient = None
+        self.__MECserver_for_obclient = self.__MECserver_vector[0] #初始化
         #找出与obclient距离最小的MECserver(序列)
         distance_of_obclient_and_MECservers = np.sqrt(np.sum((self.__MECservers_pos - np.array([x_client, y_client])) ** 2, axis=1))
         min_distance_of_obc_MEC = np.min(distance_of_obclient_and_MECservers)
@@ -161,7 +162,7 @@ class Map:
             min_MECservers_Q_res_index = np.argwhere(MECservers_Q_res == np.min(MECservers_Q_res)).ravel()
             MECservers_for_obclient = [MECservers_for_obclient[index] for index in min_MECservers_Q_res_index]
         else:
-            MECserver_for_obclient = MECservers_for_obclient[0]
+            self.__MECserver_for_obclient = MECservers_for_obclient[0]
 
         #如果MECserver仍不唯一，则服务范围内client个数评判目标client选择哪个MEC服务器为其服务
         if len(MECservers_for_obclient) > 1:
@@ -171,10 +172,11 @@ class Map:
             min_clients_num_index = np.argwhere(clients_num == np.min(clients_num)).ravel()
             MECservers_for_obclient = [MECservers_for_obclient[index] for index in min_clients_num_index]
         else:
-            MECserver_for_obclient = MECservers_for_obclient[0]
+            self.__MECserver_for_obclient = MECservers_for_obclient[0]
         #如果MECserver仍不唯一，则随机选取一个
         if len(MECservers_for_obclient) > 1:
-            MECserver_for_obclient = Map.rng.choice(a=MECservers_for_obclient, size=1, replace=False)
+            MECserver_for_obclient_index = Map.rng.choice(a=np.arange(len(MECservers_for_obclient)), size=1, replace=False)
+            self.__MECserver_for_obclient = MECservers_for_obclient[MECserver_for_obclient_index]
 
         # obclient
         self.__obclient = ObjectClient(
@@ -185,17 +187,40 @@ class Map:
             y_client=y_client,
             Q_client=self.__Q_client,
             alpha_vector=self.__alpha_vector,
-            D_vector=MECserver_for_obclient.client_vector,
-            x_server=MECserver_for_obclient.axis[0],
-            y_server=MECserver_for_obclient.axis[1]
+            D_vector=self.__MECserver_for_obclient.client_vector,
+            x_server=self.__MECserver_for_obclient.axis[0],
+            y_server=self.__MECserver_for_obclient.axis[1]
         )
 
-    def transmitting_time(self):
+    def transmitting_R(self, is_client):
         """
-        计算无线信道的传输时延
+        计算无线信道的传输速率均值
+        :param is_client: bool, 指示当前是否是对client和MECserver之间进行计算
         :return: 无线信道传输时延
         """
-        pass #改
+        e_2 = np.sum((np.array(self.__MECserver_for_obclient.axis) - np.array(self.__obclient.axis)) ** 2)
+        t_stay = 2 * np.sqrt(self.__server_r ** 2 - e_2) / np.sqrt(np.sum(np.array(self.__obclient.v) ** 2))
+        t = sympy.symbols('t')
+        d = self.__obclient.dis_to_MECserver if is_client else self.__MECserver_for_obclient.dis_to_centerserver
+        def f(t):
+            """"""
+            if is_client:
+                d = self.__obclient.dis_to_MECserver(
+                    x_server=self.__MECserver_for_obclient.axis[0],
+                    y_server=self.__MECserver_for_obclient.axis[-1],
+                    service_r=self.__server_r,
+                    t=t
+                )
+            else:
+                d = self.__MECserver_for_obclient.dis_to_centerserver(
+                    x_server=self.__CenterMECserver.axis[0],
+                    y_server=self.__CenterMECserver.axis[-1]
+                )
+            R_transmit = self.__B * np.log2(1 + self.__P *
+                                                np.power(d, -self.__delta) * self.__h ** 2 / (self.__N0 * self.__B))
+
+            return R_transmit
+        return sympy.integrate(f, 0, t_stay) / t_stay
 
 
 if __name__ == '__main__':

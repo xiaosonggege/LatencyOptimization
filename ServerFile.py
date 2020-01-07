@@ -138,7 +138,7 @@ class MECServer(Server):
         :param y_server: Centerserver位置坐标y分量
         :return: MECserver到Centerserver的欧式距离
         """
-        pass #改
+        return np.sqrt(np.sum((np.array(self.axis) - np.array([x_server, y_server]) ** 2)))
 
     def MEC_calc_time(self, D_MEC):
         """

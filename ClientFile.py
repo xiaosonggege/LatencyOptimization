@@ -128,15 +128,20 @@ class ObjectClient(Client):
         """
         return self.__Q_client - self.__Q_used
 
-    def dis_to_MECserver(self, x_server, y_server, service_r):
+    def dis_to_MECserver(self, x_server, y_server, service_r, t):
         """
         计算目标client到为其服务的MECserver的欧氏距离
         :param x_server: MECserver位置坐标x分量
         :param y_server: MECserver位置坐标y分量
         :param service_r: MECserver服务范围半径
+        :param t: 传输时间
         :return: 目标client到为其服务的MECserver的欧式距离
         """
-        pass #改
+        oblcient_v_abs = np.sqrt(np.sum(np.array(self.v) ** 2))
+        e_2 = np.sum((np.array(self.axis) - np.array([x_server, y_server]) ** 2))
+        d_t = np.sqrt(e_2 + (np.sqrt(service_r ** 2 - e_2) - oblcient_v_abs * t) ** 2)
+        return d_t
+
 
     def task_distributing(self):
         """
