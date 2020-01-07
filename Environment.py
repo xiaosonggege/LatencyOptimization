@@ -222,6 +222,10 @@ class Map:
             return R_transmit
         return sympy.integrate(f, 0, t_stay) / t_stay
 
+    def simulation(self):
+        """"""
+        pass #改
+
 
 if __name__ == '__main__':
     pass
