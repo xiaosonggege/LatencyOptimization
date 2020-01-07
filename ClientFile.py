@@ -128,6 +128,16 @@ class ObjectClient(Client):
         """
         return self.__Q_client - self.__Q_used
 
+    def dis_to_MECserver(self, x_server, y_server, service_r):
+        """
+        计算目标client到为其服务的MECserver的欧氏距离
+        :param x_server: MECserver位置坐标x分量
+        :param y_server: MECserver位置坐标y分量
+        :param service_r: MECserver服务范围半径
+        :return: 目标client到为其服务的MECserver的欧式距离
+        """
+        pass #改
+
     def task_distributing(self):
         """
         按权值向量分配本地任务量和需要卸载到MEC服务器端的任务量

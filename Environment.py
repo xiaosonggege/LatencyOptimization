@@ -9,6 +9,7 @@
 @time: 2020/1/3 4:00 下午
 '''
 import numpy as np
+import sympy
 from ClientFile import Client, ObjectClient
 from ServerFile import Server, MECServer, CenterServer
 class Map:
@@ -184,8 +185,10 @@ class Map:
             x_client=x_client,
             y_client=y_client,
             Q_client=self.__Q_client,
-            alpha_vector=self.__alpha_vector
-
+            alpha_vector=self.__alpha_vector,
+            D_vector=MECserver_for_obclient.client_vector,
+            x_server=MECserver_for_obclient.axis[0],
+            y_server=MECserver_for_obclient.axis[1]
         )
 
     def transmitting_time(self):
@@ -193,6 +196,7 @@ class Map:
         计算无线信道的传输时延
         :return: 无线信道传输时延
         """
+        
 
 if __name__ == '__main__':
     pass

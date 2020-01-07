@@ -131,6 +131,15 @@ class MECServer(Server):
             return 0
         return -1
 
+    def dis_to_centerserver(self, x_server, y_server):
+        """
+        计算MECserver到Centerserver的欧式距离
+        :param x_server: Centerserver位置坐标x分量
+        :param y_server: Centerserver位置坐标y分量
+        :return: MECserver到Centerserver的欧式距离
+        """
+        pass #改
+
     def MEC_calc_time(self, D_MEC):
         """
         计算MEC端计算任务所需时间
