@@ -262,11 +262,47 @@ class Map:
         #总时延
         time_total = time_local_calculating + time_MEC_calculating
 
+    def solve_problem(self, vector_alpha, op_function):
+        """
+        :param op_function:
+        'Nelder-Mead':单纯行法
+        'Powell'
+        'CG'
+        'BFGS'
+        'Newton-CG'
+        'L-BFGS-B'
+        'TNC'
+        'COBYLA'
+        'SLSQP'
+        'trust-constr'
+        'dogleg'
+        'trust-ncg'
+        'trust-exact'
+        'trust-krylov'
+        'custom - a callable object'
+        :return None
+        :param vector_alpha: 子任务量比例分配向量
+        :param T_TH: 对总时延的约束
+        return None
+        """
+        self._build_model()
+        # print(self.__this_client.N)
+        vector_alpha = vector_alpha[:, :self.__this_client.N]
+        # print(vector_alpha.size)
+        fun = lambda alpha : self._calc_T(alpha)
+        #约束项函数
+        # 约束条件 分为eq 和ineq
+        # eq表示 函数结果等于0 ； ineq 表示 表达式大于等于0
+        cons = [{'type': 'ineq', 'fun': lambda alphas: self.__Q_MEC - self.__MEC.calc_D_MEC(alphas)},
+                {'type': 'ineq',
+                 'fun': lambda alphas: self.__this_client.movetime_range - self.__MEC.calc_t_MEC(alphas)},
+                {'type': 'ineq', 'fun': lambda alphas: self.__T_epsilon - fun(alphas)},
+                {'type': 'ineq', 'fun': lambda alphas: alphas.T},
+                {'type': 'ineq', 'fun': lambda alphas: - alphas.T + 1}]
 
-
-
-
-
+        # print(len(cons))
+        res = minimize(fun, vector_alpha, method=op_function, constraints=cons)
+        return res
 
 if __name__ == '__main__':
     pass
