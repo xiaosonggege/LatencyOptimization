@@ -243,15 +243,25 @@ class Map:
             client_vector = self.__MECserver_for_obclient.client_vector
             #生成计算任务#函数内部需要改
             self.__obclient.D_vector = client_vector
-            #目标client按权值分配需要在本地执行和需要卸载的计算任务
-            task_MEC_all = self.__obclient.task_distributing()
-            #本地计算时间
-            time_local_calculating = self.__obclient.local_calc_time()
-            #MECserver计算卸载任务所需时间
-            time_MEC_calculating = self.__MECserver_for_obclient.MEC_calc_time(D_MEC=task_MEC_all)
-            #总时延
-            time_total = time_local_calculating + time_MEC_calculating
+
         elif obclient_pos_judge == 0: #目标client处于MECserver边缘处
+            #所有MECserver将自己服务范围内的所有client位置和速度信息发送至Centerserver
+            client_vector_to_Centerserver = []
+            for mecserver in self.__MECserver_vector:
+                client_vector_to_Centerserver.extend(mecserver.client_vector)
+            self.__CenterMECserver.client_vector = client_vector_to_Centerserver
+            client_vector = self.__CenterMECserver.filter_client_vector(self.__obclient)
+            self.__obclient.D_vector = client_vector
+
+        # 目标client按权值分配需要在本地执行和需要卸载的计算任务
+        task_MEC_all = self.__obclient.task_distributing()
+        #本地计算时间
+        time_local_calculating = self.__obclient.local_calc_time()
+        #MECserver计算卸载任务所需时间
+        time_MEC_calculating = self.__MECserver_for_obclient.MEC_calc_time(D_MEC=task_MEC_all)
+        #总时延
+        time_total = time_local_calculating + time_MEC_calculating
+
 
 
 
