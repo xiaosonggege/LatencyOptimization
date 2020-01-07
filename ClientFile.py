@@ -142,6 +142,24 @@ class ObjectClient(Client):
         d_t = np.sqrt(e_2 + (np.sqrt(service_r ** 2 - e_2) - oblcient_v_abs * t) ** 2)
         return d_t
 
+    @property
+    def D_vector(self):
+        """
+        返回待处理任务序列
+        :return: ndarray，待处理任务序列
+        """
+        return self.__D_vector
+
+    @D_vector.setter
+    def D_vector(self, client_vector):
+        """
+        根据待检测用户位置速度信息以及目标client的位置和速度信息生成计算任务
+        :param client_vector: 待检测用户列表
+        :return: None
+        """
+        clients_pos = np.array([client.axis for client in client_vector])
+        clients_v = np.array([client.v for client in client_vector])
+        self.__D_vector = clients_pos #改
 
     def task_distributing(self):
         """

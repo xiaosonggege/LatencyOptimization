@@ -137,9 +137,10 @@ class Map:
                                 np.ones(shape=self.__MECserver_num) * self.__r_edge_th
                             )]
 
-    def obclient_producing(self, R_client, v_x, v_y, x_client, y_client):
+
+    def _obclient_and_MECserver_for_obclient_producing(self, R_client, v_x, v_y, x_client, y_client):
         """
-        目标client生成
+        目标client生成以及为目标client服务的MECserver生成
         :param R_client: 目标用户本地cpu计算速率
         :param v_x: 目标用户移动速度x分量
         :param v_y: 目标用户移动速度y分量
@@ -222,9 +223,39 @@ class Map:
             return R_transmit
         return sympy.integrate(f, 0, t_stay) / t_stay
 
-    def simulation(self):
-        """"""
-        pass #改
+    def simulation(self, R_client, v_x, v_y, x_client, y_client):
+        """
+        真实场景模拟
+        :param R_client: 目标用户本地cpu计算速率
+        :param v_x: 目标用户移动速度x分量
+        :param v_y: 目标用户移动速度y分量
+        :param x_client: 目标用户位置坐标x分量
+        :param y_client: 目标用户位置坐标y分量
+        :return: None
+        """
+        #产生目标client和为其服务的MECserver
+        self._obclient_and_MECserver_for_obclient_producing(
+            R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client)
+        #判断目标client是否处于MECserver边缘
+        obclient_pos_judge = self.__MECserver_for_obclient.client_pos_to_MECserver(self.__obclient)
+        if obclient_pos_judge == 1: #目标client处于MECserver非边缘处
+            #目标client获得MECserver服务范围内所有其它client的位置和速度信息
+            client_vector = self.__MECserver_for_obclient.client_vector
+            #生成计算任务#函数内部需要改
+            self.__obclient.D_vector = client_vector
+            #目标client按权值分配需要在本地执行和需要卸载的计算任务
+            task_MEC_all = self.__obclient.task_distributing()
+            #本地计算时间
+            time_local_calculating = self.__obclient.local_calc_time()
+            #MECserver计算卸载任务所需时间
+            time_MEC_calculating = self.__MECserver_for_obclient.MEC_calc_time(D_MEC=task_MEC_all)
+            #总时延
+            time_total = time_local_calculating + time_MEC_calculating
+        elif obclient_pos_judge == 0: #目标client处于MECserver边缘处
+
+
+
+
 
 
 if __name__ == '__main__':
