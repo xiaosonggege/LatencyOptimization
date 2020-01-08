@@ -295,7 +295,7 @@ class Map:
         # 约束条件 分为eq 和ineq
         # eq表示 函数结果等于0 ； ineq 表示 表达式大于等于0
         cons = [{'type': 'ineq', 'fun': self.__MECserver_for_obclient.Q_res() -  self.__obclient.task_distributing()},
-                {'type': 'ineq', 'fun': self.__obclient.Q_res() + self.__obclient.task_distributing() - 1},
+                {'type': 'ineq', 'fun': self.__obclient.Q_res() + self.__obclient.task_distributing() - np.sum(self.__obclient.D_vector)},
                 {'type': 'ineq',
                  'fun': self.__t_stay - self.__time_transmitting_calculating - self.__time_MEC_calculating},
                 {'type': 'ineq', 'fun': lambda alphas: self.__T_epsilon - fun(alphas)},
