@@ -289,7 +289,7 @@ class Map:
             """
             nonlocal self
             self.__alpha_vector = Map.param_tensor(param_range=(0, 1), param_size=[1, self.__client_num - 1])
-            self.__obclient.alpha_vector = self.__alpha_vector
+            self.__obclient.alpha_vector = alphas
             time_all = self.simulation(R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client)
             return time_all
 
