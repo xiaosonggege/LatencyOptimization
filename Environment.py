@@ -193,6 +193,8 @@ class Map:
             x_server=self.__MECserver_for_obclient.axis[0],
             y_server=self.__MECserver_for_obclient.axis[1]
         )
+        e_2 = np.sum((np.array(self.__MECserver_for_obclient.axis) - np.array(self.__obclient.axis)) ** 2)
+        self.__t_stay = 2 * np.sqrt(self.__server_r ** 2 - e_2) / np.sqrt(np.sum(np.array(self.__obclient.v) ** 2))
 
     def transmitting_R(self, is_client):
         """
@@ -200,8 +202,8 @@ class Map:
         :param is_client: bool, 指示当前是否是对client和MECserver之间进行计算
         :return: 无线信道传输时延
         """
-        e_2 = np.sum((np.array(self.__MECserver_for_obclient.axis) - np.array(self.__obclient.axis)) ** 2)
-        t_stay = 2 * np.sqrt(self.__server_r ** 2 - e_2) / np.sqrt(np.sum(np.array(self.__obclient.v) ** 2))
+        # e_2 = np.sum((np.array(self.__MECserver_for_obclient.axis) - np.array(self.__obclient.axis)) ** 2)
+        # self.__t_stay = 2 * np.sqrt(self.__server_r ** 2 - e_2) / np.sqrt(np.sum(np.array(self.__obclient.v) ** 2))
         t = sympy.symbols('t')
         d = self.__obclient.dis_to_MECserver if is_client else self.__MECserver_for_obclient.dis_to_centerserver
         def f(t):
@@ -222,7 +224,7 @@ class Map:
                                                 np.power(d, -self.__delta) * self.__h ** 2 / (self.__N0 * self.__B))
 
             return R_transmit
-        return sympy.integrate(f, 0, t_stay) / t_stay
+        return sympy.integrate(f, 0, self.__t_stay) / self.__t_stay
 
     def simulation(self, R_client, v_x, v_y, x_client, y_client):
         """
@@ -257,13 +259,13 @@ class Map:
         # 目标client按权值分配需要在本地执行和需要卸载的计算任务
         task_MEC_all = self.__obclient.task_distributing()
         #本地计算时间
-        time_local_calculating = self.__obclient.local_calc_time()
+        self.__time_local_calculating = self.__obclient.local_calc_time()
         #卸载任务时间
-        time_transmitting_calculating = self.transmitting_R(is_client=1)
+        self.__time_transmitting_calculating = self.transmitting_R(is_client=1)
         #MECserver计算卸载任务所需时间
-        time_MEC_calculating = self.__MECserver_for_obclient.MEC_calc_time(D_MEC=task_MEC_all)
+        self.__time_MEC_calculating = self.__MECserver_for_obclient.MEC_calc_time(D_MEC=task_MEC_all)
         #总时延
-        time_total = time_local_calculating + time_transmitting_calculating + time_MEC_calculating
+        time_total = self.__time_local_calculating + self.__time_transmitting_calculating + self.__time_MEC_calculating
         return time_total
 
     def solve_problem(self, R_client, v_x, v_y, x_client, y_client, op_function):
@@ -294,10 +296,10 @@ class Map:
         #约束项函数
         # 约束条件 分为eq 和ineq
         # eq表示 函数结果等于0 ； ineq 表示 表达式大于等于0
-        cons = [{'type': 'ineq', 'fun': lambda alphas: self.__MECserver_for_obclient.Q_res() -
-                                                       self.__MECserver_for_obclient.},
+        cons = [{'type': 'ineq', 'fun': self.__MECserver_for_obclient.Q_res() -  self.__obclient.task_distributing()},
+                {'type': 'ineq', 'fun': self.__obclient.Q_res() + self.__obclient.task_distributing() - 1},
                 {'type': 'ineq',
-                 'fun': lambda alphas: self.__this_client.movetime_range - self.__MEC.calc_t_MEC(alphas)},
+                 'fun': self.__t_stay - self.__time_transmitting_calculating - self.__time_MEC_calculating},
                 {'type': 'ineq', 'fun': lambda alphas: self.__T_epsilon - fun(alphas)},
                 {'type': 'ineq', 'fun': lambda alphas: alphas.T},
                 {'type': 'ineq', 'fun': lambda alphas: - alphas.T + 1}]
