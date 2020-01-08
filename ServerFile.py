@@ -173,13 +173,13 @@ class CenterServer(Server):
         :return: list，由需要与目标client之间进行临近检测的其他client组成的列表
         """
         v = np.array([client.v for client in self.client_vector])
-        v_max_mod = np.max(np.sqrt(np.sum(v ** 2, axis=0)))
+        v_max_mod = np.max(np.sqrt(np.sum(v ** 2, axis=1)))
         v_obclient_mod = np.sqrt(np.sum(np.array(obclient.v) ** 2))
         #计算中心服务器的服务范围半径
         self.__server_r = (v_max_mod + v_obclient_mod) * self.__T_epsilon
         #从地图中所有client中筛选出需要进行临近检测的client组成列表返回
         position_clients = np.array([client.axis for client in self.client_vector])
-        clients_satisfied_index = np.where(np.sum((position_clients - np.array(obclient.axis)) ** 2, axis=1)
+        clients_satisfied_index = np.where(np.sqrt(np.sum((position_clients - np.array(obclient.axis)) ** 2, axis=1))
                                      < self.__server_r, 1, 0)
         clients_satisfied = []
         for i in clients_satisfied_index:
