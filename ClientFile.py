@@ -175,8 +175,7 @@ class ObjectClient(Client):
         """
         mean = 1e4
         std = 1
-        rng = np.random.RandomState(0)
-        self.__D_vector = rng.normal(loc=mean, scale=std, size=len(client_vector))#改
+        self.__D_vector = ObjectClient.rng.normal(loc=mean, scale=std, size=len(client_vector))#改
 
     def task_distributing(self):
         """
