@@ -155,13 +155,13 @@ class Map:
         distance_of_obclient_and_MECservers = np.sqrt(np.sum((self.__MECservers_pos - np.array([x_client, y_client])) ** 2, axis=1))
         min_distance_of_obc_MEC = np.min(distance_of_obclient_and_MECservers)
         min_distance_of_obc_MEC_index = np.argwhere(distance_of_obclient_and_MECservers==min_distance_of_obc_MEC)
-        min_distance_of_obc_MEC_index = min_distance_of_obc_MEC_index.ravel()
+        min_distance_of_obc_MEC_index = [min_distance_of_obc_MEC_index.ravel()]
         MECservers_for_obclient = [self.__MECserver_vector[index] for index in min_distance_of_obc_MEC_index]
 
         #如果存在多个与obclient距离最小的MECserver，则根据MEC服务器当前时间服务器剩余存储容量
         if len(MECservers_for_obclient) > 1:
             MECservers_Q_res = np.array([MECserver.Q_res() for MECserver in MECservers_for_obclient])
-            min_MECservers_Q_res_index = np.argwhere(MECservers_Q_res == np.min(MECservers_Q_res)).ravel()
+            min_MECservers_Q_res_index = [np.argwhere(MECservers_Q_res == np.min(MECservers_Q_res)).ravel()]
             MECservers_for_obclient = [MECservers_for_obclient[index] for index in min_MECservers_Q_res_index]
         else:
             self.__MECserver_for_obclient = MECservers_for_obclient[0]
@@ -171,13 +171,13 @@ class Map:
             for MECserver in MECservers_for_obclient:
                 Map.clientsForMECserver(client_vector=self.__client_vector, MECserver=MECserver)
             clients_num = np.array([len(MECserver.client_vector) for MECserver in MECservers_for_obclient])
-            min_clients_num_index = np.argwhere(clients_num == np.min(clients_num)).ravel()
+            min_clients_num_index = [np.argwhere(clients_num == np.min(clients_num)).ravel()]
             MECservers_for_obclient = [MECservers_for_obclient[index] for index in min_clients_num_index]
         else:
             self.__MECserver_for_obclient = MECservers_for_obclient[0]
         #如果MECserver仍不唯一，则随机选取一个
         if len(MECservers_for_obclient) > 1:
-            MECserver_for_obclient_index = Map.rng.choice(a=np.arange(len(MECservers_for_obclient)), size=1, replace=False)
+            MECserver_for_obclient_index = Map.rng.choice(a=np.arange(len(MECservers_for_obclient)), size=1, replace=False)[0]
             self.__MECserver_for_obclient = MECservers_for_obclient[MECserver_for_obclient_index]
 
         # obclient
@@ -189,7 +189,7 @@ class Map:
             y_client=y_client,
             Q_client=self.__Q_client,
             alpha_vector=self.__alpha_vector,
-            D_vector=self.__MECserver_for_obclient.client_vector,
+            D_vector=np.zeros(shape=self.__MECserver_for_obclient.client_vector),
             x_server=self.__MECserver_for_obclient.axis[0],
             y_server=self.__MECserver_for_obclient.axis[1]
         )
