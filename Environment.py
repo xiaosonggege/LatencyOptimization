@@ -265,7 +265,7 @@ class Map:
         #MECserver计算卸载任务所需时间
         self.__time_MEC_calculating = self.__MECserver_for_obclient.MEC_calc_time(D_MEC=task_MEC_all)
         #总时延
-        time_total = self.__time_local_calculating + self.__time_transmitting_calculating + self.__time_MEC_calculating
+        time_total = np.max(np.array([self.__time_local_calculating, self.__time_transmitting_calculating + self.__time_MEC_calculating]))
         return time_total
 
     def solve_problem(self, R_client, v_x, v_y, x_client, y_client, op_function):
