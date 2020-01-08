@@ -220,7 +220,7 @@ class Map:
                     y_server=self.__CenterMECserver.axis[-1]
                 )
             R_transmit = self.__B * np.log2(1 + self.__P *
-                                                np.power(d, -self.__delta) * self.__h ** 2 / (self.__N0 * self.__B))
+                                                np.power(d, -self.__delta) * (self.__h ** 2) / (self.__N0 * self.__B))
 
             return R_transmit
         return sympy.integrate(f, 0, self.__t_stay) / self.__t_stay
@@ -287,7 +287,6 @@ class Map:
             :return: 时延
             """
             nonlocal self
-            self.__alpha_vector = Map.param_tensor(param_range=(0, 1), param_size=[1, self.__client_num - 1])
             self.__obclient.alpha_vector = alphas
             time_all = self.simulation(R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client)
             return time_all
