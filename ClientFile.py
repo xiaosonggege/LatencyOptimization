@@ -167,15 +167,16 @@ class ObjectClient(Client):
         return self.__D_vector
 
     @D_vector.setter
-    def D_vector(self, client_vector):
+    def D_vector(self, client_vector): #此函数需要根据实际情况进行修改
         """
         根据待检测用户位置速度信息以及目标client的位置和速度信息生成计算任务
         :param client_vector: 待检测用户列表
         :return: None
         """
-        clients_pos = np.array([client.axis for client in client_vector])
-        clients_v = np.array([client.v for client in client_vector])
-        self.__D_vector = clients_pos #改
+        mean = 1e4
+        std = 1
+        rng = np.random.RandomState(0)
+        self.__D_vector = rng.normal(loc=mean, scale=std, size=len(client_vector))#改
 
     def task_distributing(self):
         """
