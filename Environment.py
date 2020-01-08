@@ -103,8 +103,8 @@ class Map:
 
         #用户cpu计算速率向量
         clients_R_client = Map.param_tensor_gaussian(mean=self.__R_client_mean, var=1, param_size=self.__client_num-1)
-        # 子任务序列的权值分配
-        self.__alpha_vector = Map.param_tensor(param_range=(0, 1), param_size=[1, self.__client_num-1])
+        # 子任务序列的权值分配初始化为0向量
+        self.__alpha_vector = np.zeros(shape=[1, self.__client_num-1])
 
         #client序列
         self.__client_vector = [Client(R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client)
@@ -232,7 +232,7 @@ class Map:
         :param v_y: 目标用户移动速度y分量
         :param x_client: 目标用户位置坐标x分量
         :param y_client: 目标用户位置坐标y分量
-        :return: None
+        :return: 总时延
         """
         #产生目标client和为其服务的MECserver
         self._obclient_and_MECserver_for_obclient_producing(
@@ -258,43 +258,44 @@ class Map:
         task_MEC_all = self.__obclient.task_distributing()
         #本地计算时间
         time_local_calculating = self.__obclient.local_calc_time()
+        #卸载任务时间
+        time_transmitting_calculating = self.transmitting_R(is_client=1)
         #MECserver计算卸载任务所需时间
         time_MEC_calculating = self.__MECserver_for_obclient.MEC_calc_time(D_MEC=task_MEC_all)
         #总时延
-        time_total = time_local_calculating + time_MEC_calculating
+        time_total = time_local_calculating + time_transmitting_calculating + time_MEC_calculating
+        return time_total
 
-    def solve_problem(self, vector_alpha, op_function):
+    def solve_problem(self, R_client, v_x, v_y, x_client, y_client, op_function):
         """
-        :param op_function:
-        'Nelder-Mead':单纯行法
-        'Powell'
-        'CG'
-        'BFGS'
-        'Newton-CG'
-        'L-BFGS-B'
-        'TNC'
-        'COBYLA'
-        'SLSQP'
-        'trust-constr'
-        'dogleg'
-        'trust-ncg'
-        'trust-exact'
-        'trust-krylov'
-        'custom - a callable object'
-        :return None
-        :param vector_alpha: 子任务量比例分配向量
+        :param R_client: 目标用户本地cpu计算速率
+        :param v_x: 目标用户移动速度x分量
+        :param v_y: 目标用户移动速度y分量
+        :param x_client: 目标用户位置坐标x分量
+        :param y_client: 目标用户位置坐标y分量
+        :param op_function: str, 优化方法名称
         :param T_TH: 对总时延的约束
         return None
         """
-        self._build_model()
-        # print(self.__this_client.N)
-        vector_alpha = vector_alpha[:, :self.__this_client.N]
-        # print(vector_alpha.size)
-        fun = lambda alpha : self._calc_T(alpha)
+        self.__alpha_vector = Map.param_tensor(param_range=(0, 1), param_size=[1, self.__client_num - 1])
+        self.__obclient.alpha_vector = self.__alpha_vector
+        def fun(alphas):
+            """
+            优化所需函数
+            :param alphas: 目标client权值向量
+            :return: 时延
+            """
+            nonlocal self
+            self.__alpha_vector = Map.param_tensor(param_range=(0, 1), param_size=[1, self.__client_num - 1])
+            self.__obclient.alpha_vector = self.__alpha_vector
+            time_all = self.simulation(R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client)
+            return time_all
+
         #约束项函数
         # 约束条件 分为eq 和ineq
         # eq表示 函数结果等于0 ； ineq 表示 表达式大于等于0
-        cons = [{'type': 'ineq', 'fun': lambda alphas: self.__Q_MEC - self.__MEC.calc_D_MEC(alphas)},
+        cons = [{'type': 'ineq', 'fun': lambda alphas: self.__MECserver_for_obclient.Q_res() -
+                                                       self.__MECserver_for_obclient.},
                 {'type': 'ineq',
                  'fun': lambda alphas: self.__this_client.movetime_range - self.__MEC.calc_t_MEC(alphas)},
                 {'type': 'ineq', 'fun': lambda alphas: self.__T_epsilon - fun(alphas)},
@@ -302,7 +303,7 @@ class Map:
                 {'type': 'ineq', 'fun': lambda alphas: - alphas.T + 1}]
 
         # print(len(cons))
-        res = minimize(fun, vector_alpha, method=op_function, constraints=cons)
+        res = minimize(fun, self.__alpha_vector, method=op_function, constraints=cons)
         return res
 
 if __name__ == '__main__':

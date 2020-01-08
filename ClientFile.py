@@ -120,6 +120,22 @@ class ObjectClient(Client):
         self.__alpha_vector = alpha_vector
         self.__Q_client = Q_client
         self.__Q_used = ObjectClient.rng.uniform(low=0, high=1) #根据实际情况修改
+    @property
+    def alpha_vector(self):
+        """
+        返回目标client的任务量权值向量
+        :return: 目标client的任务量权值向量
+        """
+        return self.__alpha_vector
+
+    @alpha_vector.setter
+    def alpha_vector(self, alphas):
+        """
+        设置目标client的任务量权值向量
+        :param alphas: ndarray，权值向量
+        :return: None
+        """
+        self.__alpha_vector = alphas
 
     def Q_res(self):
         """
