@@ -205,7 +205,6 @@ class Map:
         # e_2 = np.sum((np.array(self.__MECserver_for_obclient.axis) - np.array(self.__obclient.axis)) ** 2)
         # self.__t_stay = 2 * np.sqrt(self.__server_r ** 2 - e_2) / np.sqrt(np.sum(np.array(self.__obclient.v) ** 2))
         t = sympy.symbols('t')
-        d = self.__obclient.dis_to_MECserver if is_client else self.__MECserver_for_obclient.dis_to_centerserver
         def f(t):
             """"""
             if is_client:
