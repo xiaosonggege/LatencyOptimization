@@ -104,7 +104,7 @@ class Map:
         #用户cpu计算速率向量
         clients_R_client = Map.param_tensor_gaussian(mean=self.__R_client_mean, var=1, param_size=self.__client_num-1)
         # 子任务序列的权值分配初始化为0向量
-        self.__alpha_vector = np.zeros(shape=[1, self.__client_num-1])
+        # self.__alpha_vector = np.zeros(shape=[1, self.__client_num-1])
 
         #client序列
         self.__client_vector = [Client(R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client)
@@ -188,7 +188,6 @@ class Map:
             x_client=x_client,
             y_client=y_client,
             Q_client=self.__Q_client,
-            alpha_vector=self.__alpha_vector,
             D_vector=np.zeros(shape=self.__MECserver_for_obclient.client_vector),
             x_server=self.__MECserver_for_obclient.axis[0],
             y_server=self.__MECserver_for_obclient.axis[1]
@@ -196,7 +195,7 @@ class Map:
         e_2 = np.sum((np.array(self.__MECserver_for_obclient.axis) - np.array(self.__obclient.axis)) ** 2)
         self.__t_stay = 2 * np.sqrt(self.__server_r ** 2 - e_2) / np.sqrt(np.sum(np.array(self.__obclient.v) ** 2))
 
-    def transmitting_R(self, is_client):
+    def transmitting_R(self, is_client=1):
         """
         计算无线信道的传输速率均值
         :param is_client: bool, 指示当前是否是对client和MECserver之间进行计算
@@ -225,7 +224,22 @@ class Map:
             return R_transmit
         return sympy.integrate(f, 0, self.__t_stay) / self.__t_stay
 
-    def simulation(self, R_client, v_x, v_y, x_client, y_client):
+    def time_transmitting_and_MEC_calculating(self, alphas):
+        """
+        计算任务卸载时间和MECserver计算时间
+        :param alphas: 子任务权值分配向量
+        :return: 计算任务卸载时间和MECserver计算时间总和
+        """
+        # 目标client按权值分配需要在本地执行和需要卸载的计算任务
+        task_MEC_all = self.__obclient.task_distributing(alphas=alphas)
+        # 卸载任务时间
+        time_transmitting_calculating = self.__obclient.D_vector * (1 - alphas) / self.transmitting_R()
+
+        # MECserver计算卸载任务所需时间
+        time_MEC_calculating = self.__MECserver_for_obclient.MEC_calc_time(D_MEC=task_MEC_all)
+        return time_transmitting_calculating + time_MEC_calculating
+
+    def simulation(self, R_client, v_x, v_y, x_client, y_client, alphas):
         """
         真实场景模拟
         :param R_client: 目标用户本地cpu计算速率
@@ -233,6 +247,7 @@ class Map:
         :param v_y: 目标用户移动速度y分量
         :param x_client: 目标用户位置坐标x分量
         :param y_client: 目标用户位置坐标y分量
+        :param alphas: 子任务权值分配向量
         :return: 总时延
         """
         #产生目标client和为其服务的MECserver
@@ -255,16 +270,14 @@ class Map:
             client_vector = self.__CenterMECserver.filter_client_vector(self.__obclient)
             self.__obclient.D_vector = client_vector
 
-        # 目标client按权值分配需要在本地执行和需要卸载的计算任务
-        task_MEC_all = self.__obclient.task_distributing()
+        # # 目标client按权值分配需要在本地执行和需要卸载的计算任务
+        # task_MEC_all = self.__obclient.task_distributing(alphas=alphas)
         #本地计算时间
-        self.__time_local_calculating = self.__obclient.local_calc_time()
-        #卸载任务时间
-        self.__time_transmitting_calculating = self.transmitting_R(is_client=1)
-        #MECserver计算卸载任务所需时间
-        self.__time_MEC_calculating = self.__MECserver_for_obclient.MEC_calc_time(D_MEC=task_MEC_all)
+        time_local_calculating = self.__obclient.local_calc_time(alphas=alphas)
+        #计算任务卸载时间和MECserver计算时间
+        time_transmitting_and_MEC_calculating = self.time_transmitting_and_MEC_calculating(alphas=alphas)
         #总时延
-        time_total = np.max(np.array([self.__time_local_calculating, self.__time_transmitting_calculating + self.__time_MEC_calculating]))
+        time_total = np.max(np.array([time_local_calculating, time_transmitting_and_MEC_calculating]))
         return time_total
 
     def solve_problem(self, R_client, v_x, v_y, x_client, y_client, op_function):
@@ -278,8 +291,7 @@ class Map:
         :param T_TH: 对总时延的约束
         return None
         """
-        self.__alpha_vector = Map.param_tensor(param_range=(0, 1), param_size=[1, self.__client_num - 1])
-        self.__obclient.alpha_vector = self.__alpha_vector
+        alphas = Map.param_tensor(param_range=(0, 1), param_size=[1, self.__client_num - 1])
         def fun(alphas):
             """
             优化所需函数
@@ -288,22 +300,24 @@ class Map:
             """
             nonlocal self
             self.__obclient.alpha_vector = alphas
-            time_all = self.simulation(R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client)
+            time_all = self.simulation(R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client, alphas=alphas)
             return time_all
 
         #约束项函数
         # 约束条件 分为eq 和ineq
         # eq表示 函数结果等于0 ； ineq 表示 表达式大于等于0
-        cons = [{'type': 'ineq', 'fun': self.__MECserver_for_obclient.Q_res() -  self.__obclient.task_distributing()},
-                {'type': 'ineq', 'fun': self.__obclient.Q_res() + self.__obclient.task_distributing() - np.sum(self.__obclient.D_vector)},
-                {'type': 'ineq',
-                 'fun': self.__t_stay - self.__time_transmitting_calculating - self.__time_MEC_calculating},
+        cons = [{'type': 'ineq', 'fun':
+            lambda alphas: self.__MECserver_for_obclient.Q_res() -  self.__obclient.task_distributing(alphas=alphas)},
+                {'type': 'ineq', 'fun':
+            lambda alphas: self.__obclient.Q_res() + self.__obclient.task_distributing(alphas=alphas) - np.sum(self.__obclient.D_vector)},
+                {'type': 'ineq', 'fun':
+            lambda alphas: self.__t_stay - self.time_transmitting_and_MEC_calculating(alphas=alphas)},
                 {'type': 'ineq', 'fun': lambda alphas: self.__T_epsilon - fun(alphas)},
                 {'type': 'ineq', 'fun': lambda alphas: alphas.T},
                 {'type': 'ineq', 'fun': lambda alphas: - alphas.T + 1}]
 
         # print(len(cons))
-        res = minimize(fun, self.__alpha_vector, method=op_function, constraints=cons)
+        res = minimize(fun, alphas, method=op_function, constraints=cons)
         return res
 
 if __name__ == '__main__':

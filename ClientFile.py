@@ -10,6 +10,7 @@
 '''
 import numpy as np
 
+
 class Client:
     """
     用户基类
@@ -20,6 +21,7 @@ class Client:
     x_client: 用户位置坐标x分量
     y_client: 用户位置坐标y分量
     """
+
     def __init__(self, R_client, v_x, v_y, x_client, y_client):
         """
         用户类型构造函数
@@ -77,6 +79,7 @@ class Client:
         """
         return self.__R_client
 
+
 class ObjectClient(Client):
     """
     目标用户类型
@@ -98,7 +101,9 @@ class ObjectClient(Client):
     Q_client: 用户计算任务量阈值
     """
     rng = np.random.RandomState(0)
-    def __init__(self, R_client, v_x, v_y, x_client, y_client, D_vector, x_server, y_server, alpha_vector, Q_client):
+
+    def __init__(self, R_client, v_x, v_y, x_client, y_client, D_vector, x_server, y_server, Q_client,
+                 alpha_vector=None):
         """
         目标用户类型构造函数
         :param R_client: 用户本地cpu计算速率
@@ -119,7 +124,8 @@ class ObjectClient(Client):
         self.__D_vector_length = self.__D_vector.size
         self.__alpha_vector = alpha_vector
         self.__Q_client = Q_client
-        self.__Q_used = ObjectClient.rng.uniform(low=0, high=1) #根据实际情况修改
+        self.__Q_used = ObjectClient.rng.uniform(low=0, high=1)  # 根据实际情况修改
+
     @property
     def alpha_vector(self):
         """
@@ -167,7 +173,7 @@ class ObjectClient(Client):
         return self.__D_vector
 
     @D_vector.setter
-    def D_vector(self, client_vector): #此函数需要根据实际情况进行修改
+    def D_vector(self, client_vector):  # 此函数需要根据实际情况进行修改
         """
         根据待检测用户位置速度信息以及目标client的位置和速度信息生成计算任务
         :param client_vector: 待检测用户列表
@@ -175,20 +181,26 @@ class ObjectClient(Client):
         """
         mean = 1e4
         std = 1
-        self.__D_vector = ObjectClient.rng.normal(loc=mean, scale=std, size=len(client_vector))#改
+        self.__D_vector = ObjectClient.rng.normal(loc=mean, scale=std, size=len(client_vector))  # 改
 
-    def task_distributing(self):
+    def task_distributing(self, alphas=None):
         """
         按权值向量分配本地任务量和需要卸载到MEC服务器端的任务量
+        :param alphas: 子任务权值分配向量，默认值为None
         :return: 需要卸载的任务量
         """
+        if alphas != None:
+            self.alpha_vector = alphas
         return np.sum(self.__D_vector * (1 - self.__alpha_vector))
 
-    def local_calc_time(self):
+    def local_calc_time(self, alphas=None):
         """
         计算本地计算任务所需时间
+        :param alphas: 子任务权值分配向量，默认值为None
         :return: 本地计算任务所需时间
         """
+        if alphas != None:
+            self.alpha_vector = alphas
         self.__D_local = np.sum(self.__D_vector * self.__alpha_vector)
         return self.__D_local / self.R_client
 
