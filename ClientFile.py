@@ -161,7 +161,7 @@ class ObjectClient(Client):
         """
         oblcient_v_abs = np.sqrt(np.sum(np.array(self.v) ** 2))
         e_2 = np.sum((np.array(self.axis) - np.array([x_server, y_server]) ** 2))
-        d_t = np.sqrt(e_2 + (np.sqrt(service_r ** 2 - e_2) - oblcient_v_abs * t) ** 2)
+        d_t = np.sqrt(e_2 + (oblcient_v_abs * t) ** 2)
         return d_t
 
     @property

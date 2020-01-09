@@ -193,7 +193,7 @@ class Map:
             y_server=self.__MECserver_for_obclient.axis[1]
         )
         e_2 = np.sum((np.array(self.__MECserver_for_obclient.axis) - np.array(self.__obclient.axis)) ** 2)
-        self.__t_stay = 2 * np.sqrt(self.__server_r ** 2 - e_2) / np.sqrt(np.sum(np.array(self.__obclient.v) ** 2))
+        self.__t_stay = np.sqrt(self.__server_r ** 2 - e_2) / np.sqrt(np.sum(np.array(self.__obclient.v) ** 2))
 
     def transmitting_R(self, is_client=1):
         """
@@ -233,7 +233,7 @@ class Map:
         # 目标client按权值分配需要在本地执行和需要卸载的计算任务
         task_MEC_all = self.__obclient.task_distributing(alphas=alphas)
         # 卸载任务时间
-        time_transmitting_calculating = self.__obclient.D_vector * (1 - alphas) / self.transmitting_R()
+        time_transmitting_calculating = np.sum(self.__obclient.D_vector * (1 - alphas)) / self.transmitting_R()
 
         # MECserver计算卸载任务所需时间
         time_MEC_calculating = self.__MECserver_for_obclient.MEC_calc_time(D_MEC=task_MEC_all)
