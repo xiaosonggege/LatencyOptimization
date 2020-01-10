@@ -141,14 +141,14 @@ class Map:
     def point_of_intersection_calculating(self):
         """
         计算目标client移动速度方向直线与MECserver服务范围边界圆的两个交点
-        :return: tuple，交点坐标
+        :return: ndarray，交点坐标
         """
         x, y = sympy.symbols('x y')
         points = sympy.solve([(x - self.__obclient.axis[0]) / self.__obclient.v[0] -
                               (y - self.__obclient.axis[-1]) / self.__obclient.v[-1],
                               (x - self.__MECserver_for_obclient.axis[0]) ** 2 +
                               (y - self.__MECserver_for_obclient.axis[-1]) ** 2 - self.__server_r ** 2], [x, y])
-        return (points[0][0].evalf(), points[0][-1].evalf()), (points[-1][0].evalf(), points[-1][-1].evalf())
+        return np.array((points[0][0].evalf(), points[0][-1].evalf()), (points[-1][0].evalf(), points[-1][-1].evalf()))
 
     def _obclient_and_MECserver_for_obclient_producing(self, R_client, v_x, v_y, x_client, y_client):
         """
