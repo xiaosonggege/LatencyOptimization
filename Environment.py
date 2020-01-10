@@ -203,8 +203,12 @@ class Map:
             x_server=self.__MECserver_for_obclient.axis[0],
             y_server=self.__MECserver_for_obclient.axis[1]
         )
-        e_2 = np.sum((np.array(self.__MECserver_for_obclient.axis) - np.array(self.__obclient.axis)) ** 2)
-        self.__t_stay = np.sqrt(self.__server_r ** 2 - e_2) / np.sqrt(np.sum(np.array(self.__obclient.v) ** 2))
+
+        axis_a, axis_b = np.split(self.point_of_intersection_calculating(), indices_or_sections=2, axis=0)
+        axis_a, axis_b = axis_a[0], axis_b[0]
+        t1 = (axis_b[0] - self.__obclient.axis[0]) / self.__obclient.v[0]
+        t2 = (axis_b[0] - self.__obclient.axis[0]) / self.__obclient.v[0]
+        self.__t_stay = t1 if t1 else t2
 
     def transmitting_R(self, is_client=1):
         """
