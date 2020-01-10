@@ -216,18 +216,11 @@ class Map:
         :param is_client: bool, 指示当前是否是对client和MECserver之间进行计算
         :return: 无线信道传输时延
         """
-        # e_2 = np.sum((np.array(self.__MECserver_for_obclient.axis) - np.array(self.__obclient.axis)) ** 2)
-        # self.__t_stay = 2 * np.sqrt(self.__server_r ** 2 - e_2) / np.sqrt(np.sum(np.array(self.__obclient.v) ** 2))
         t = sympy.symbols('t')
         def f(t):
             """"""
             if is_client:
-                d = self.__obclient.dis_to_MECserver(
-                    x_server=self.__MECserver_for_obclient.axis[0],
-                    y_server=self.__MECserver_for_obclient.axis[-1],
-                    service_r=self.__server_r,
-                    t=t
-                )
+                d = self.__obclient.dis_to_MECserver(point_of_intersection=self.point_of_intersection_calculating(), t=t)
             else:
                 d = self.__MECserver_for_obclient.dis_to_centerserver(
                     x_server=self.__CenterMECserver.axis[0],
