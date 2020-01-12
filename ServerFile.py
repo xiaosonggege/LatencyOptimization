@@ -47,7 +47,7 @@ class Server:
     def client_vector(self):
         """
         返回服务范围内client上传的信息
-        :return: ndarray，由服务范围内client上传的信息组成的张量
+        :return: list，由服务范围内client上传的信息组成的张量
         """
         return self.__client_vector
 
@@ -172,6 +172,7 @@ class CenterServer(Server):
         筛选出需要与目标client之间进行临近检测的其它client
         :return: list，由需要与目标client之间进行临近检测的其他client组成的列表
         """
+        # print(type(self.client_vector[0]))
         v = np.array([client.v for client in self.client_vector])
         v_max_mod = np.max(np.sqrt(np.sum(v ** 2, axis=1)))
         v_obclient_mod = np.sqrt(np.sum(np.array(obclient.v) ** 2))

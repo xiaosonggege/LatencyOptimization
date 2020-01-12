@@ -47,11 +47,17 @@ class Map:
         :param MECserver: 服务器对象
         :return: None
         """
+        print(client_vector[0].axis)
         clients_pos = np.array([client.axis for client in client_vector])
+        print(clients_pos.shape)
+        a = (clients_pos - np.array(MECserver.axis)) ** 2
+        print(a.shape)
         dis_between_clients_and_MECserver = np.sqrt(np.sum((clients_pos - np.array(MECserver.axis)) ** 2, axis=1))
-        dis_between_clients_and_MECserver_index = np.argwhere(dis_between_clients_and_MECserver < MECserver.service_r).ravel()
-        clients_for_MECserver = (client_vector[index] for index in dis_between_clients_and_MECserver_index)
-        MECserver.client_vector = list(clients_for_MECserver)
+        print(dis_between_clients_and_MECserver.shape)
+        dis_between_clients_and_MECserver_index = np.argwhere(dis_between_clients_and_MECserver < MECserver.service_r).ravel().tolist()
+        print(dis_between_clients_and_MECserver_index)
+        MECserver.client_vector = [client_vector[index] for index in dis_between_clients_and_MECserver_index]
+        print(MECserver.client_vector)
 
     def __init__(self, x_map, y_map, client_num, MECserver_num, R_client_mean, R_MEC_mean,
                  vxy_client_range, T_epsilon, Q_client, Q_MEC, server_r, r_edge_th, B, N0, P, h, delta):
@@ -96,8 +102,8 @@ class Map:
         #用户速度矩阵
         clients_v = Map.param_tensor(param_range=self.__vxy_client_range, param_size=(self.__client_num-1, 2))
 
-        clients_posx = Map.param_tensor(param_range=(0, self.__x_map), param_size=(self.__client_num-1, 1))
-        clients_posy = Map.param_tensor(param_range=(0, self.__y_map), param_size=(self.__client_num-1, 1))
+        clients_posx = Map.param_tensor(param_range=(0, self.__x_map), param_size=self.__client_num-1)
+        clients_posy = Map.param_tensor(param_range=(0, self.__y_map), param_size=self.__client_num-1)
         #用户位置矩阵
         self.__clients_pos = np.hstack((clients_posx, clients_posy))
 
@@ -116,6 +122,7 @@ class Map:
                                     clients_posx,
                                     clients_posy
                                 )]
+        print(self.__client_vector[0].axis)
 
         #MECserver的cpu计算速率向量
         MECservers_R_MEC = Map.param_tensor_gaussian(mean = self.__R_MEC_mean, var=1, param_size=self.__MECserver_num)
@@ -137,18 +144,23 @@ class Map:
                                 np.ones(shape=self.__MECserver_num) * self.__Q_MEC,
                                 np.ones(shape=self.__MECserver_num) * self.__r_edge_th
                             )]
-
+        for MECserver in self.__MECserver_vector:
+            Map.clientsForMECserver(client_vector=self.__client_vector, MECserver=MECserver)
+            # print(type(MECserver.client_vector), len(MECserver.client_vector))
     def point_of_intersection_calculating(self):
         """
         计算目标client移动速度方向直线与MECserver服务范围边界圆的两个交点
         :return: ndarray，交点坐标
         """
+        x_1, y_1 = self.__obclient.axis
+        vx, vy = self.__obclient.v
+        x_2, y_2 = self.__MECserver_for_obclient.axis
+        r = self.__MECserver_for_obclient.service_r
+        # print(x_1, y_1, vx, vy, x_2, y_2, r)
         x, y = sympy.symbols('x y')
-        points = sympy.solve([(x - self.__obclient.axis[0]) / self.__obclient.v[0] -
-                              (y - self.__obclient.axis[-1]) / self.__obclient.v[-1],
-                              (x - self.__MECserver_for_obclient.axis[0]) ** 2 +
-                              (y - self.__MECserver_for_obclient.axis[-1]) ** 2 - self.__server_r ** 2], [x, y])
-        return np.array((points[0][0].evalf(), points[0][-1].evalf()), (points[-1][0].evalf(), points[-1][-1].evalf()))
+        points = sympy.solve([(x - x_2) ** 2 + (y - y_2) ** 2 - r ** 2, (x - x_1) / vx - (y - y_1) / vy], [x, y])
+        # print(points[0][0].evalf(), points[0][-1].evalf(), points[-1][0].evalf(), points[-1][-1].evalf())
+        return np.array([(points[0][0].evalf(), points[0][-1].evalf()), (points[-1][0].evalf(), points[-1][-1].evalf())])
 
     def _obclient_and_MECserver_for_obclient_producing(self, R_client, v_x, v_y, x_client, y_client):
         """
@@ -166,13 +178,13 @@ class Map:
         distance_of_obclient_and_MECservers = np.sqrt(np.sum((self.__MECservers_pos - np.array([x_client, y_client])) ** 2, axis=1))
         min_distance_of_obc_MEC = np.min(distance_of_obclient_and_MECservers)
         min_distance_of_obc_MEC_index = np.argwhere(distance_of_obclient_and_MECservers==min_distance_of_obc_MEC)
-        min_distance_of_obc_MEC_index = [min_distance_of_obc_MEC_index.ravel()]
+        min_distance_of_obc_MEC_index = min_distance_of_obc_MEC_index.ravel().tolist()
         MECservers_for_obclient = [self.__MECserver_vector[index] for index in min_distance_of_obc_MEC_index]
 
         #如果存在多个与obclient距离最小的MECserver，则根据MEC服务器当前时间服务器剩余存储容量
         if len(MECservers_for_obclient) > 1:
             MECservers_Q_res = np.array([MECserver.Q_res() for MECserver in MECservers_for_obclient])
-            min_MECservers_Q_res_index = [np.argwhere(MECservers_Q_res == np.min(MECservers_Q_res)).ravel()]
+            min_MECservers_Q_res_index = np.argwhere(MECservers_Q_res == np.min(MECservers_Q_res)).ravel().tolist()
             MECservers_for_obclient = [MECservers_for_obclient[index] for index in min_MECservers_Q_res_index]
         else:
             self.__MECserver_for_obclient = MECservers_for_obclient[0]
@@ -182,7 +194,7 @@ class Map:
             for MECserver in MECservers_for_obclient:
                 Map.clientsForMECserver(client_vector=self.__client_vector, MECserver=MECserver)
             clients_num = np.array([len(MECserver.client_vector) for MECserver in MECservers_for_obclient])
-            min_clients_num_index = [np.argwhere(clients_num == np.min(clients_num)).ravel()]
+            min_clients_num_index = np.argwhere(clients_num == np.min(clients_num)).ravel().tolist()
             MECservers_for_obclient = [MECservers_for_obclient[index] for index in min_clients_num_index]
         else:
             self.__MECserver_for_obclient = MECservers_for_obclient[0]
@@ -199,7 +211,7 @@ class Map:
             x_client=x_client,
             y_client=y_client,
             Q_client=self.__Q_client,
-            D_vector=np.zeros(shape=self.__MECserver_for_obclient.client_vector),
+            D_vector=np.zeros(shape=len(self.__MECserver_for_obclient.client_vector)),
             x_server=self.__MECserver_for_obclient.axis[0],
             y_server=self.__MECserver_for_obclient.axis[1]
         )
@@ -273,7 +285,9 @@ class Map:
             #所有MECserver将自己服务范围内的所有client位置和速度信息发送至Centerserver
             client_vector_to_Centerserver = []
             for mecserver in self.__MECserver_vector:
+                print(len(mecserver.client_vector))
                 client_vector_to_Centerserver.extend(mecserver.client_vector)
+            print(client_vector_to_Centerserver[0])
             self.__CenterMECserver.client_vector = client_vector_to_Centerserver
             client_vector = self.__CenterMECserver.filter_client_vector(self.__obclient)
             self.__obclient.D_vector = client_vector
@@ -307,25 +321,26 @@ class Map:
             :return: 时延
             """
             nonlocal self
-            self.__obclient.alpha_vector = alphas
+            # self.__obclient.alpha_vector = alphas
             time_all = self.simulation(R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client, alphas=alphas)
             return time_all
 
-        #约束项函数
-        # 约束条件 分为eq 和ineq
-        # eq表示 函数结果等于0 ； ineq 表示 表达式大于等于0
-        cons = [{'type': 'ineq', 'fun':
-            lambda alphas: self.__MECserver_for_obclient.Q_res() -  self.__obclient.task_distributing(alphas=alphas)},
-                {'type': 'ineq', 'fun':
-            lambda alphas: self.__obclient.Q_res() + self.__obclient.task_distributing(alphas=alphas) - np.sum(self.__obclient.D_vector)},
-                {'type': 'ineq', 'fun':
-            lambda alphas: self.__t_stay - self.time_transmitting_and_MEC_calculating(alphas=alphas)},
-                {'type': 'ineq', 'fun': lambda alphas: self.__T_epsilon - fun(alphas)},
-                {'type': 'ineq', 'fun': lambda alphas: alphas.T},
-                {'type': 'ineq', 'fun': lambda alphas: - alphas.T + 1}]
-
-        # print(len(cons))
-        res = minimize(fun, alphas, method=op_function, constraints=cons)
+        # #约束项函数
+        # # 约束条件 分为eq 和ineq
+        # # eq表示 函数结果等于0 ； ineq 表示 表达式大于等于0
+        # cons = [{'type': 'ineq', 'fun':
+        #     lambda alphas: self.__MECserver_for_obclient.Q_res() -  self.__obclient.task_distributing(alphas=alphas)},
+        #         {'type': 'ineq', 'fun':
+        #     lambda alphas: self.__obclient.Q_res() + self.__obclient.task_distributing(alphas=alphas) - np.sum(self.__obclient.D_vector)},
+        #         {'type': 'ineq', 'fun':
+        #     lambda alphas: self.__t_stay - self.time_transmitting_and_MEC_calculating(alphas=alphas)},
+        #         {'type': 'ineq', 'fun': lambda alphas: self.__T_epsilon - fun(alphas)},
+        #         {'type': 'ineq', 'fun': lambda alphas: alphas.T},
+        #         {'type': 'ineq', 'fun': lambda alphas: - alphas.T + 1}]
+        #
+        # # print(len(cons))
+        # res = minimize(fun, alphas, method=op_function, constraints=cons)
+        res = fun(alphas)
         return res
 
 if __name__ == '__main__':

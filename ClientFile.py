@@ -182,7 +182,7 @@ class ObjectClient(Client):
         :param client_vector: 待检测用户列表
         :return: None
         """
-        mean = 1e4
+        mean = 1e3
         std = 1
         self.__D_vector = ObjectClient.rng.normal(loc=mean, scale=std, size=len(client_vector))  # 改
 
@@ -210,6 +210,6 @@ class ObjectClient(Client):
 
 if __name__ == '__main__':
     c1 = Client(1, 2, 3, 4, 5)
-    print(c1.v)
-    c2 = ObjectClient(1, 2, 3, 4, 5, np.array([6, 6]), 7, 8, 9, 10)
-    print(c2.v)
+    l = [c1, c1, c1]
+    l.extend(l)
+    print(len(l))
