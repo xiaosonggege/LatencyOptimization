@@ -47,17 +47,18 @@ class Map:
         :param MECserver: 服务器对象
         :return: None
         """
-        print(client_vector[0].axis)
+        # print(client_vector[0].axis)
         clients_pos = np.array([client.axis for client in client_vector])
-        print(clients_pos.shape)
-        a = (clients_pos - np.array(MECserver.axis)) ** 2
-        print(a.shape)
+        # print(clients_pos.shape)
+        # a = (clients_pos - np.array(MECserver.axis)) ** 2
+        # print(a.shape)
         dis_between_clients_and_MECserver = np.sqrt(np.sum((clients_pos - np.array(MECserver.axis)) ** 2, axis=1))
-        print(dis_between_clients_and_MECserver.shape)
+        # print(dis_between_clients_and_MECserver.shape)
         dis_between_clients_and_MECserver_index = np.argwhere(dis_between_clients_and_MECserver < MECserver.service_r).ravel().tolist()
-        print(dis_between_clients_and_MECserver_index)
+        print(len(dis_between_clients_and_MECserver_index))
+        # print(len(client_vector))
         MECserver.client_vector = [client_vector[index] for index in dis_between_clients_and_MECserver_index]
-        print(MECserver.client_vector)
+        print(len(MECserver.client_vector))
 
     def __init__(self, x_map, y_map, client_num, MECserver_num, R_client_mean, R_MEC_mean,
                  vxy_client_range, T_epsilon, Q_client, Q_MEC, server_r, r_edge_th, B, N0, P, h, delta):
@@ -122,7 +123,7 @@ class Map:
                                     clients_posx,
                                     clients_posy
                                 )]
-        print(self.__client_vector[0].axis)
+        # print(self.__client_vector[0].axis)
 
         #MECserver的cpu计算速率向量
         MECservers_R_MEC = Map.param_tensor_gaussian(mean = self.__R_MEC_mean, var=1, param_size=self.__MECserver_num)

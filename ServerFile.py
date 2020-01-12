@@ -35,7 +35,7 @@ class Server:
         return self.__x_server, self.__y_server
 
     @axis.setter
-    def axis(self, *xy):
+    def axis(self, xy):
         """
         设置服务器位置坐标
         :param xy: tuple，服务器位置坐标
@@ -52,7 +52,7 @@ class Server:
         return self.__client_vector
 
     @client_vector.setter
-    def client_vector(self, *clients):
+    def client_vector(self, clients):
         """
         接收服务范围内client上传的信息
         :param clients: 用户序列
