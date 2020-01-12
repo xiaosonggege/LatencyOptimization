@@ -160,11 +160,14 @@ class ObjectClient(Client):
         #计算两交点的中点坐标
         m = np.mean(point_of_intersection, axis=1)
         #计算圆心到中点坐标的距离，即圆心到弦的距离
-        l = np.sqrt(np.sum((m - np.array([self.__x_server, self.__y_server])) ** 2))
+        # result = np.sum((m - np.array([self.__x_server, self.__y_server])) ** 2)
+        # print(type(result))
+        # print(np.sqrt(float(result)))
+        l = np.sqrt(float(np.sum((m - np.array([self.__x_server, self.__y_server])) ** 2)))
         #计算矢量s和s_0
         s = np.array(self.axis) - m
         s_0 = np.array(self.v) * t
-        d_t = np.sqrt(l ** 2 + np.sum((s + s_0) ** 2))
+        d_t = np.sqrt(float(l ** 2 + np.sum((s + s_0) ** 2)))
         return d_t
 
     @property
@@ -192,7 +195,7 @@ class ObjectClient(Client):
         :param alphas: 子任务权值分配向量，默认值为None
         :return: 需要卸载的任务量
         """
-        if alphas != None:
+        if alphas.any() != None:
             self.alpha_vector = alphas
         return np.sum(self.__D_vector * (1 - self.__alpha_vector))
 
@@ -202,7 +205,7 @@ class ObjectClient(Client):
         :param alphas: 子任务权值分配向量，默认值为None
         :return: 本地计算任务所需时间
         """
-        if alphas != None:
+        if alphas.any() != None:
             self.alpha_vector = alphas
         self.__D_local = np.sum(self.__D_vector * self.__alpha_vector)
         return self.__D_local / self.R_client

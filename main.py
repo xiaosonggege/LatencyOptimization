@@ -63,6 +63,7 @@ def main():
         y_client=Map.rng.uniform(low=0, high=y_map),
         op_function='SLSQP'
     )
+    print(res)
     # print('最优时延结果为: %s' % res.fun)
     # print('取得最优时延时优化参数向量为:\n', res.x)
     # print('迭代次数为: %s' % res.nit)

@@ -11,6 +11,7 @@
 import numpy as np
 import sympy
 from scipy.optimize import minimize
+import scipy.integrate as si
 from ClientFile import Client, ObjectClient
 from ServerFile import Server, MECServer, CenterServer
 class Map:
@@ -38,7 +39,7 @@ class Map:
     param_tensor = lambda param_range, param_size: Map.rng.uniform(low=param_range[0], high=param_range[-1],
                                                                size=param_size)
     param_tensor_gaussian = lambda mean, var, param_size: Map.rng.normal(loc=mean, scale=var, size=param_size)
-
+    filter_list = [] #记录空间内各client的服务MECserver标志
     @staticmethod
     def clientsForMECserver(client_vector, MECserver):
         """
@@ -55,10 +56,16 @@ class Map:
         dis_between_clients_and_MECserver = np.sqrt(np.sum((clients_pos - np.array(MECserver.axis)) ** 2, axis=1))
         # print(dis_between_clients_and_MECserver.shape)
         dis_between_clients_and_MECserver_index = np.argwhere(dis_between_clients_and_MECserver < MECserver.service_r).ravel().tolist()
-        print(len(dis_between_clients_and_MECserver_index))
+        #由于每个client只需要找到一个MECserver为其进行服务，所以需要进行判断每个符合条件的client是否已有为其服务的服务器
+        dis_between_clients_and_MECserver_index = [i for i in dis_between_clients_and_MECserver_index if Map.filter_list[i] == 0]
+        #记录新筛选出的client
+        for index in dis_between_clients_and_MECserver_index:
+            Map.filter_list[index] = 1
+
+        # print(len(dis_between_clients_and_MECserver_index))
         # print(len(client_vector))
         MECserver.client_vector = [client_vector[index] for index in dis_between_clients_and_MECserver_index]
-        print(len(MECserver.client_vector))
+        # print(len(MECserver.client_vector))
 
     def __init__(self, x_map, y_map, client_num, MECserver_num, R_client_mean, R_MEC_mean,
                  vxy_client_range, T_epsilon, Q_client, Q_MEC, server_r, r_edge_th, B, N0, P, h, delta):
@@ -132,7 +139,7 @@ class Map:
         MECservers_posy = np.linspace(0, self.__y_map, 2 + int(np.sqrt(self.__MECserver_num)))[1:-1]
         #MECserver的位置坐标
         self.__MECservers_pos = np.array([(x, y) for x in MECservers_posx for y in MECservers_posy])
-
+        Map.filter_list = [0 for _ in range(client_num)] #初始化记录列表为全0
         #MECserver序列
         self.__MECserver_vector = [MECServer(x_server=x_server, y_server=y_server, service_r=service_r, R_MEC=R_MEC,
                                       Q_MEC=Q_MEC, r_edge_th=r_edge_th)
@@ -161,7 +168,9 @@ class Map:
         x, y = sympy.symbols('x y')
         points = sympy.solve([(x - x_2) ** 2 + (y - y_2) ** 2 - r ** 2, (x - x_1) / vx - (y - y_1) / vy], [x, y])
         # print(points[0][0].evalf(), points[0][-1].evalf(), points[-1][0].evalf(), points[-1][-1].evalf())
-        return np.array([(points[0][0].evalf(), points[0][-1].evalf()), (points[-1][0].evalf(), points[-1][-1].evalf())])
+        result = np.array([(points[0][0].evalf(), points[0][-1].evalf()), (points[-1][0].evalf(), points[-1][-1].evalf())])
+        # print(result.shape)
+        return result
 
     def _obclient_and_MECserver_for_obclient_producing(self, R_client, v_x, v_y, x_client, y_client):
         """
@@ -232,18 +241,21 @@ class Map:
         t = sympy.symbols('t')
         def f(t):
             """"""
-            if is_client:
-                d = self.__obclient.dis_to_MECserver(point_of_intersection=self.point_of_intersection_calculating(), t=t)
-            else:
-                d = self.__MECserver_for_obclient.dis_to_centerserver(
-                    x_server=self.__CenterMECserver.axis[0],
-                    y_server=self.__CenterMECserver.axis[-1]
-                )
+            # if is_client:
+            #     d = self.__obclient.dis_to_MECserver(point_of_intersection=self.point_of_intersection_calculating(), t=t)
+            # else:
+            #     d = self.__MECserver_for_obclient.dis_to_centerserver(
+            #         x_server=self.__CenterMECserver.axis[0],
+            #         y_server=self.__CenterMECserver.axis[-1]
+            #     )
+            d = self.__obclient.dis_to_MECserver(point_of_intersection=self.point_of_intersection_calculating(), t=t)
             R_transmit = self.__B * np.log2(1 + self.__P *
                                                 np.power(d, -self.__delta) * (self.__h ** 2) / (self.__N0 * self.__B))
 
             return R_transmit
-        return sympy.integrate(f, 0, self.__t_stay) / self.__t_stay
+        # result = sympy.integrate(f, 0, self.__t_stay) / self.__t_stay
+        result = si.quad(f, 0, self.__t_stay)[0] / self.__t_stay
+        return result
 
     def time_transmitting_and_MEC_calculating(self, alphas):
         """
@@ -286,22 +298,22 @@ class Map:
             #所有MECserver将自己服务范围内的所有client位置和速度信息发送至Centerserver
             client_vector_to_Centerserver = []
             for mecserver in self.__MECserver_vector:
-                print(len(mecserver.client_vector))
+                # print(len(mecserver.client_vector))
                 client_vector_to_Centerserver.extend(mecserver.client_vector)
-            print(client_vector_to_Centerserver[0])
+            # print(client_vector_to_Centerserver[0])
             self.__CenterMECserver.client_vector = client_vector_to_Centerserver
-            client_vector = self.__CenterMECserver.filter_client_vector(self.__obclient)
+            client_vector = self.__CenterMECserver.filter_client_vector(self.__obclient) #client_vector中有重复的需要略去
+
             self.__obclient.D_vector = client_vector
 
-        # # 目标client按权值分配需要在本地执行和需要卸载的计算任务
-        # task_MEC_all = self.__obclient.task_distributing(alphas=alphas)
         #本地计算时间
         time_local_calculating = self.__obclient.local_calc_time(alphas=alphas)
         #计算任务卸载时间和MECserver计算时间
         time_transmitting_and_MEC_calculating = self.time_transmitting_and_MEC_calculating(alphas=alphas)
         #总时延
         time_total = np.max(np.array([time_local_calculating, time_transmitting_and_MEC_calculating]))
-        return time_total
+        print(type(time_total))
+        return time_total[0]
 
     def solve_problem(self, R_client, v_x, v_y, x_client, y_client, op_function):
         """
@@ -321,27 +333,27 @@ class Map:
             :param alphas: 目标client权值向量
             :return: 时延
             """
-            nonlocal self
-            # self.__obclient.alpha_vector = alphas
             time_all = self.simulation(R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client, alphas=alphas)
             return time_all
 
-        # #约束项函数
-        # # 约束条件 分为eq 和ineq
-        # # eq表示 函数结果等于0 ； ineq 表示 表达式大于等于0
-        # cons = [{'type': 'ineq', 'fun':
-        #     lambda alphas: self.__MECserver_for_obclient.Q_res() -  self.__obclient.task_distributing(alphas=alphas)},
-        #         {'type': 'ineq', 'fun':
-        #     lambda alphas: self.__obclient.Q_res() + self.__obclient.task_distributing(alphas=alphas) - np.sum(self.__obclient.D_vector)},
-        #         {'type': 'ineq', 'fun':
-        #     lambda alphas: self.__t_stay - self.time_transmitting_and_MEC_calculating(alphas=alphas)},
-        #         {'type': 'ineq', 'fun': lambda alphas: self.__T_epsilon - fun(alphas)},
-        #         {'type': 'ineq', 'fun': lambda alphas: alphas.T},
-        #         {'type': 'ineq', 'fun': lambda alphas: - alphas.T + 1}]
-        #
-        # # print(len(cons))
-        # res = minimize(fun, alphas, method=op_function, constraints=cons)
-        res = fun(alphas)
+        #约束项函数
+        # 约束条件 分为eq 和ineq
+        # eq表示 函数结果等于0 ； ineq 表示 表达式大于等于0
+        cons = [{'type': 'ineq', 'fun':
+            lambda alphas: self.__MECserver_for_obclient.Q_res() -  self.__obclient.task_distributing(alphas=alphas)},
+                {'type': 'ineq', 'fun':
+            lambda alphas: self.__obclient.Q_res() + self.__obclient.task_distributing(alphas=alphas) - np.sum(self.__obclient.D_vector)},
+                {'type': 'ineq', 'fun':
+            lambda alphas: self.__t_stay - self.time_transmitting_and_MEC_calculating(alphas=alphas)},
+                {'type': 'ineq', 'fun': lambda alphas: self.__T_epsilon - fun(alphas)},
+                {'type': 'ineq', 'fun': lambda alphas: alphas.T},
+                {'type': 'ineq', 'fun': lambda alphas: - alphas.T + 1}]
+
+        # print(len(cons))
+        res = minimize(fun, alphas, method=op_function, constraints=cons)
+
+        # #测试部分
+        # res = fun(alphas)
         return res
 
 if __name__ == '__main__':
