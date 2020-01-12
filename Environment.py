@@ -272,7 +272,7 @@ class Map:
         time_MEC_calculating = self.__MECserver_for_obclient.MEC_calc_time(D_MEC=task_MEC_all)
         return time_transmitting_calculating + time_MEC_calculating
 
-    def simulation(self, R_client, v_x, v_y, x_client, y_client, alphas):
+    def simulation(self, R_client, v_x, v_y, x_client, y_client):
         """
         真实场景模拟
         :param R_client: 目标用户本地cpu计算速率
@@ -280,7 +280,6 @@ class Map:
         :param v_y: 目标用户移动速度y分量
         :param x_client: 目标用户位置坐标x分量
         :param y_client: 目标用户位置坐标y分量
-        :param alphas: 子任务权值分配向量
         :return: 总时延
         """
         #产生目标client和为其服务的MECserver
@@ -306,14 +305,20 @@ class Map:
 
             self.__obclient.D_vector = client_vector
 
+    def time_total_calculating(self, alphas):
+        """
+        计算总时延
+        :param alphas: 子任务权值分配向量
+        :return: 总时延
+        """
         #本地计算时间
         time_local_calculating = self.__obclient.local_calc_time(alphas=alphas)
         #计算任务卸载时间和MECserver计算时间
         time_transmitting_and_MEC_calculating = self.time_transmitting_and_MEC_calculating(alphas=alphas)
         #总时延
         time_total = np.max(np.array([time_local_calculating, time_transmitting_and_MEC_calculating]))
-        print(type(time_total))
-        return time_total[0]
+        # print(type(time_total))
+        return time_total
 
     def solve_problem(self, R_client, v_x, v_y, x_client, y_client, op_function):
         """
@@ -327,13 +332,14 @@ class Map:
         return None
         """
         alphas = Map.param_tensor(param_range=(0, 1), param_size=[1, self.__client_num - 1])
+        self.simulation(R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client)
         def fun(alphas):
             """
             优化所需函数
             :param alphas: 目标client权值向量
             :return: 时延
             """
-            time_all = self.simulation(R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client, alphas=alphas)
+            time_all = self.time_total_calculating(alphas=alphas)
             return time_all
 
         #约束项函数
@@ -345,7 +351,7 @@ class Map:
             lambda alphas: self.__obclient.Q_res() + self.__obclient.task_distributing(alphas=alphas) - np.sum(self.__obclient.D_vector)},
                 {'type': 'ineq', 'fun':
             lambda alphas: self.__t_stay - self.time_transmitting_and_MEC_calculating(alphas=alphas)},
-                {'type': 'ineq', 'fun': lambda alphas: self.__T_epsilon - fun(alphas)},
+                # {'type': 'ineq', 'fun': lambda alphas: self.__T_epsilon - fun(alphas)},
                 {'type': 'ineq', 'fun': lambda alphas: alphas.T},
                 {'type': 'ineq', 'fun': lambda alphas: - alphas.T + 1}]
 
