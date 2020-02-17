@@ -331,8 +331,9 @@ class Map:
         :param T_TH: 对总时延的约束
         return None
         """
-        alphas = Map.param_tensor(param_range=(0, 1), param_size=[1, self.__client_num - 1])
         self.simulation(R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client)
+        # alphas = Map.param_tensor(param_range=(0, 1), param_size=[1, self.__client_num - 1])
+        alphas = Map.param_tensor(param_range=(0, 1), param_size=[1, len(self.__obclient.D_vector)])
         def fun(alphas):
             """
             优化所需函数
