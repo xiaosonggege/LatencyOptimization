@@ -14,6 +14,24 @@ from scipy.optimize import minimize
 import scipy.integrate as si
 from ClientFile import Client, ObjectClient
 from ServerFile import Server, MECServer, CenterServer
+
+#边缘Server描述符
+class AttributePropertyMEC:
+    def __init__(self, name):
+        self._name = name
+
+    def __get__(self, instance, owner):
+        attrs = instance.__dict__['_Map__'+self._name]
+        pos, r, r_TH = attrs.axis, attrs.service_r, attrs.r_edge_th
+        return pos, r, r_TH
+
+#目标client描述符
+class AttributePropertyOb:
+    def __init__(self, name):
+        self._name = name
+    def __get__(self, instance, owner):
+        return instance.__dict__['_Map__'+self._name].axis
+
 class Map:
     """
     场景地图
@@ -113,7 +131,7 @@ class Map:
         clients_posx = Map.param_tensor(param_range=(0, self.__x_map), param_size=self.__client_num-1)
         clients_posy = Map.param_tensor(param_range=(0, self.__y_map), param_size=self.__client_num-1)
         #用户位置矩阵
-        self.__clients_pos = np.hstack((clients_posx, clients_posy))
+        self.__clients_pos = np.hstack((clients_posx[:, np.newaxis], clients_posy[:, np.newaxis])) ##打印
 
         #用户cpu计算速率向量
         clients_R_client = Map.param_tensor_gaussian(mean=self.__R_client_mean, var=1, param_size=self.__client_num-1)
@@ -155,6 +173,11 @@ class Map:
         for MECserver in self.__MECserver_vector:
             Map.clientsForMECserver(client_vector=self.__client_vector, MECserver=MECserver)
             # print(type(MECserver.client_vector), len(MECserver.client_vector))
+
+    @property
+    def clients_pos(self):
+        return self.__clients_pos
+
     def point_of_intersection_calculating(self):
         """
         计算目标client移动速度方向直线与MECserver服务范围边界圆的两个交点
@@ -211,7 +234,7 @@ class Map:
         #如果MECserver仍不唯一，则随机选取一个
         if len(MECservers_for_obclient) > 1:
             MECserver_for_obclient_index = Map.rng.choice(a=np.arange(len(MECservers_for_obclient)), size=1, replace=False)[0]
-            self.__MECserver_for_obclient = MECservers_for_obclient[MECserver_for_obclient_index]
+            self.__MECserver_for_obclient = MECservers_for_obclient[MECserver_for_obclient_index] #打印位置和半径以及边界范围信息
 
         # obclient
         self.__obclient = ObjectClient(
@@ -232,6 +255,9 @@ class Map:
         t2 = (axis_b[0] - self.__obclient.axis[0]) / self.__obclient.v[0]
         self.__t_stay = t1 if t1 else t2
 
+    #MECserver_for_obclient描述符
+    MECserver_for_obclient = AttributePropertyMEC('MECserver_for_obclient')
+    Obclient = AttributePropertyOb('obclient')
     def transmitting_R(self, is_client=1):
         """
         计算无线信道的传输速率均值
@@ -283,6 +309,7 @@ class Map:
         :return: 总时延
         """
         #产生目标client和为其服务的MECserver
+        global client_vector
         self._obclient_and_MECserver_for_obclient_producing(
             R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client)
         #判断目标client是否处于MECserver边缘
@@ -304,6 +331,7 @@ class Map:
             client_vector = self.__CenterMECserver.filter_client_vector(self.__obclient) #client_vector中有重复的需要略去
 
             self.__obclient.D_vector = client_vector
+        return len(client_vector) if not obclient_pos_judge else 0 #打印中心center筛选出来的用户数
 
     def time_total_calculating(self, alphas):
         """
@@ -331,7 +359,10 @@ class Map:
         :param T_TH: 对总时延的约束
         return None
         """
-        self.simulation(R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client)
+        #client_vector是由中心服务器筛选出来的用户数量
+        client_vector_ = self.simulation(R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client)
+        if client_vector_:
+            print('中心服务器筛选出来的用户数量为 %s' % client_vector_)
         # alphas = Map.param_tensor(param_range=(0, 1), param_size=[1, self.__client_num - 1])
         alphas = Map.param_tensor(param_range=(0, 1), param_size=[1, len(self.__obclient.D_vector)])
         def fun(alphas):
@@ -357,11 +388,15 @@ class Map:
                 {'type': 'ineq', 'fun': lambda alphas: - alphas.T + 1}]
 
         # print(len(cons))
-        res = minimize(fun, alphas, method=op_function, constraints=cons)
+        res = 0 #绘图时无需优化操作
+        # res = minimize(fun, alphas, method=op_function, constraints=cons) #需要优化时打开
+
 
         # #测试部分
         # res = fun(alphas)
         return res
+
+
 
 if __name__ == '__main__':
     pass

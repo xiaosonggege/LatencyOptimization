@@ -27,7 +27,7 @@ import os
 path_vxy = '/Users/songyunlong/Desktop/vxy.txt'
 path_Te = '/Users/songyunlong/Desktop/Te.txt'
 path_client = '/Users/songyunlong/Desktop/client.txt'
-path_B = '/Users/songyunlong/Desktop/vxy.txt'
+path_B = '/Users/songyunlong/Desktop/B.txt'
 
 def fun(x, lock):
     print('begin')
@@ -71,7 +71,7 @@ class datagenerator:
         [p.join() for p in ps]
 
     def _recordingdata(self, arg, mutex):
-        print(arg)
+        # print(arg)
         if self._arg_name == 'vxy_client_range':
             result = self._func(vxy_client_range=arg)
         elif self._arg_name == 'T_epsilon':

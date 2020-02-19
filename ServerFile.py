@@ -87,6 +87,10 @@ class MECServer(Server):
         self.__Q_used = MECServer.rng.uniform(low=0, high=1) #根据实际情况修改
 
     @property
+    def r_edge_th(self):
+        return self.__r_edge_th
+
+    @property
     def service_r(self):
         """
         返回服务器服务范围半径
@@ -183,8 +187,8 @@ class CenterServer(Server):
         clients_satisfied_index = np.where(np.sqrt(np.sum((position_clients - np.array(obclient.axis)) ** 2, axis=1))
                                      < self.__server_r, 1, 0)
         clients_satisfied = []
-        for i in clients_satisfied_index:
-            clients_satisfied.append(self.client_vector[i])
+        clients_satisfied_index = [index for index, val in enumerate(clients_satisfied_index) if val == 1]
+        clients_satisfied = [self.client_vector[index] for index in clients_satisfied_index]
         return clients_satisfied
 
 
