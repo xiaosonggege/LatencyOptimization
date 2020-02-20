@@ -38,8 +38,8 @@ def main_function(vxy_client_range=(-60, 60), T_epsilon=8*60, client_num=1000, B
     Q_client = 1e2
     Q_MEC = 1e3 * client_num  # 够承载10000用户所有计算任务的
     MECserver_num_sqrt = np.sqrt(MECserver_num)
-    server_r = (x_map / (MECserver_num_sqrt +1)) * np.sqrt(2)
-    r_edge_th = x_map / (MECserver_num_sqrt +1)
+    server_r = 1 / np.sqrt(2*MECserver_num) * x_map #(x_map / (MECserver_num_sqrt +1)) * np.sqrt(2) #边缘服务器间等距且与边界等距
+    r_edge_th = server_r * (2 - np.sqrt(2)) #x_map / (MECserver_num_sqrt +1)
     B = B #6.3e+6
     N0 = 1e-10
     P = 1e-6
@@ -102,8 +102,8 @@ if __name__ == '__main__':
 #########################绘图####################################
     # for T_epsilon in [e * 60 for e in range(1, 11)]:
     #     main_function(T_epsilon=T_epsilon, vxy_client_range=(-30, 30))
-    # for client_num in [e for e in range(1000, 7700, 700)]:
-    #     main_function(client_num=client_num)
+    for client_num in [e for e in range(1000, 7700, 700)]:
+        main_function(client_num=client_num)
     def plotfun1(clients_pos:list, obclient_pos:tuple, *MECSever:tuple)->None:
         """
         绘制边缘服务器与目标client示意图
@@ -162,7 +162,7 @@ if __name__ == '__main__':
         plt.grid(axis='x', linestyle='-.')
         plt.grid(axis='y', linestyle='-.')
         plt.show()
-    plotfun2()
+    # plotfun2()
     def plotfun3():
         client_nums = [e for e in range(1000, 7700, 700)]
         Latencys = [1.684, 2.076, 2.711, 3.125, 3.340, 3.509, 3.880, 4.134, 4.528, 6.017]

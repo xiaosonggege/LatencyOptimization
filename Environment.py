@@ -152,9 +152,14 @@ class Map:
 
         #MECserver的cpu计算速率向量
         MECservers_R_MEC = Map.param_tensor_gaussian(mean = self.__R_MEC_mean, var=1, param_size=self.__MECserver_num)
-
+        #边缘服务器间等距且与边界等距，此分法服务半径大，各边缘服务器间交叉区域大
         MECservers_posx = np.linspace(0, self.__x_map, 2 + int(np.sqrt(self.__MECserver_num)))[1:-1]
         MECservers_posy = np.linspace(0, self.__y_map, 2 + int(np.sqrt(self.__MECserver_num)))[1:-1]
+        #边缘服务器间等距且与边界不等距，此分法服务半径相对小，各边缘服务器间交叉区域小
+        EdgePoint_calc = lambda para1, para2: \
+            1/(2*np.sqrt(self.__MECserver_num))*para1 + (1-1/(2*np.sqrt(self.__MECserver_num)))*para2
+        MECservers_posx = np.linspace(EdgePoint_calc(0, self.__x_map), EdgePoint_calc(self.__x_map, 0), int(np.sqrt(self.__MECserver_num)))
+        MECservers_posy = np.linspace(EdgePoint_calc(0, self.__y_map), EdgePoint_calc(self.__y_map, 0), int(np.sqrt(self.__MECserver_num)))
         #MECserver的位置坐标
         self.__MECservers_pos = np.array([(x, y) for x in MECservers_posx for y in MECservers_posy])
         Map.filter_list = [0 for _ in range(client_num)] #初始化记录列表为全0
