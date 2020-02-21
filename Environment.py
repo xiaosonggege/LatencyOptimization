@@ -15,22 +15,35 @@ import scipy.integrate as si
 from ClientFile import Client, ObjectClient
 from ServerFile import Server, MECServer, CenterServer
 
-#边缘Server描述符
+#对为目标client服务的边缘Server描述符
 class AttributePropertyMEC:
     def __init__(self, name):
         self._name = name
 
     def __get__(self, instance, owner):
-        attrs = instance.__dict__['_Map__'+self._name]
+        attrs = instance.__dict__[self._name]
         pos, r, r_TH = attrs.axis, attrs.service_r, attrs.r_edge_th
         return pos, r, r_TH
+
+#对所有边缘Server的描述符
+class AttributePropertyMEC_series:
+    def __init__(self, name):
+        self._name = name
+
+    def __get__(self, instance, owner)->tuple:
+        """"""
+        attrs = instance.__dict__[self._name] #attrs为list结构
+        r, r_TH = attrs[0].service_r, attrs[0].r_edge_th #服务半径和服务范围边界区域下限半径
+        servers_posx = [mecpos.axis[0] for mecpos in attrs]
+        servers_posy = [mecpos.axis[-1] for mecpos in attrs]
+        return servers_posx, servers_posy, r, r_TH
 
 #目标client描述符
 class AttributePropertyOb:
     def __init__(self, name):
         self._name = name
     def __get__(self, instance, owner):
-        return instance.__dict__['_Map__'+self._name].axis
+        return instance.__dict__[self._name].axis
 
 class Map:
     """
@@ -153,8 +166,8 @@ class Map:
         #MECserver的cpu计算速率向量
         MECservers_R_MEC = Map.param_tensor_gaussian(mean = self.__R_MEC_mean, var=1, param_size=self.__MECserver_num)
         #边缘服务器间等距且与边界等距，此分法服务半径大，各边缘服务器间交叉区域大
-        MECservers_posx = np.linspace(0, self.__x_map, 2 + int(np.sqrt(self.__MECserver_num)))[1:-1]
-        MECservers_posy = np.linspace(0, self.__y_map, 2 + int(np.sqrt(self.__MECserver_num)))[1:-1]
+        # MECservers_posx = np.linspace(0, self.__x_map, 2 + int(np.sqrt(self.__MECserver_num)))[1:-1]
+        # MECservers_posy = np.linspace(0, self.__y_map, 2 + int(np.sqrt(self.__MECserver_num)))[1:-1]
         #边缘服务器间等距且与边界不等距，此分法服务半径相对小，各边缘服务器间交叉区域小
         EdgePoint_calc = lambda para1, para2: \
             1/(2*np.sqrt(self.__MECserver_num))*para1 + (1-1/(2*np.sqrt(self.__MECserver_num)))*para2
@@ -261,8 +274,9 @@ class Map:
         self.__t_stay = t1 if t1 else t2
 
     #MECserver_for_obclient描述符
-    MECserver_for_obclient = AttributePropertyMEC('MECserver_for_obclient')
-    Obclient = AttributePropertyOb('obclient')
+    MECserver_for_obclient = AttributePropertyMEC('_Map__MECserver_for_obclient')
+    Obclient = AttributePropertyOb('_Map__obclient')
+    MECserver_vector = AttributePropertyMEC_series('_Map__MECserver_vector')
     def transmitting_R(self, is_client=1):
         """
         计算无线信道的传输速率均值

@@ -85,7 +85,9 @@ def main_function(vxy_client_range=(-60, 60), T_epsilon=8*60, client_num=1000, B
     # print(type(map.clients_pos), map.clients_pos.shape)
     # print(map.MECserver_for_obclient)
     # print(map.Obclient)
+    # print(map.MECserver_vector)
     # plotfun(map.clients_pos, map.Obclient, *map.MECserver_for_obclient)
+    plotfun(map.clients_pos, map.Obclient, *map.MECserver_vector)
     return 0
     # return res.fun
 
@@ -102,9 +104,9 @@ if __name__ == '__main__':
 #########################绘图####################################
     # for T_epsilon in [e * 60 for e in range(1, 11)]:
     #     main_function(T_epsilon=T_epsilon, vxy_client_range=(-30, 30))
-    for client_num in [e for e in range(1000, 7700, 700)]:
-        main_function(client_num=client_num)
-    def plotfun1(clients_pos:list, obclient_pos:tuple, *MECSever:tuple)->None:
+    # for client_num in [e for e in range(1000, 7700, 700)]:
+    #     main_function(client_num=client_num)
+    def plotfun0(clients_pos:list, obclient_pos:tuple, *MECSever:tuple)->None:
         """
         绘制边缘服务器与目标client示意图
         :param clients_pos: 所有用户坐标
@@ -143,7 +145,53 @@ if __name__ == '__main__':
         plt.xlabel('x/m')
         plt.ylabel('y/m')
         plt.show()
-    # main_function(plotfun=plotfun1)
+    # main_function(plotfun=plotfun0)
+    def plotfun1(clients_pos:list, obclient_pos:tuple, *MECSevers:tuple)->None:
+        """"""
+        clxs, clys = np.split(ary=np.array(clients_pos), indices_or_sections=2, axis=1)
+        obclx, obcly = np.split(ary=np.array(obclient_pos), indices_or_sections=2)
+        MECServer_posx, MECServer_posy, r, r_TH = MECSevers
+        # print(MECServer_posx, '\n', MECServer_posy)
+
+        circle_up = lambda x, y, r_TH, x_TH: y + np.sqrt(r_TH**2-(x_TH-x)**2)
+        circle_down = lambda x, y, r_TH, x_TH: y - np.sqrt(r_TH ** 2 - (x_TH - x) ** 2)
+        fig = plt.figure('完整的道路网络图')
+        ax = fig.add_subplot(1, 1, 1)
+        flag = 1
+        for pos in zip(MECServer_posx, MECServer_posy):
+            x_ = np.arange(pos[0] - r, pos[0] + r, 0.1)
+            x_TH = np.arange(pos[0] - r_TH, pos[0] + r_TH, 0.1)
+            y_up = circle_up(x=pos[0], y=pos[-1], r_TH=r, x_TH=x_)
+            y_down = circle_down(x=pos[0], y=pos[-1], r_TH=r, x_TH=x_)
+            y_THup = circle_up(x=pos[0], y=pos[-1], r_TH=r_TH, x_TH=x_TH)
+            y_THdown = circle_down(x=pos[0], y=pos[-1], r_TH=r_TH, x_TH=x_TH)
+            if flag:
+                ax.plot(x_, y_up, c='y', label='UpperGround')
+            else:
+                ax.plot(x_, y_up, c='y')
+            ax.plot(x_, y_down, c='y')
+            if flag:
+                ax.plot(x_TH, y_THup, c='g', label='LowerRange')
+                flag = 0
+            else:
+                ax.plot(x_TH, y_THup, c='g')
+            ax.plot(x_TH, y_THdown, c='g')
+            ax.scatter(x=pos[0], y=pos[-1], c='m')
+        ax.scatter(x=clxs, y=clys, s=6, label='clients')
+        ax.scatter(x=obclx, y=obcly, c='r', label='Obclient')
+
+        def formatnum(x, pos):
+            return '$%.1f$x$10^{5}$' % (x / 100000)
+
+        formatter = FuncFormatter(formatnum)
+        ax.yaxis.set_major_formatter(formatter)
+        ax.xaxis.set_major_formatter(formatter)
+        ax.set_xlabel('x/m')
+        ax.set_ylabel('y/m')
+        ax.legend(loc='upper left')
+        fig.show()
+
+    main_function(plotfun=plotfun1)
     def plotfun2():
         T_e = [e * 60 for e in range(1, 11)]
         #Vmax=120
