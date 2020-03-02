@@ -28,25 +28,27 @@ path_vxy = '/Users/songyunlong/Desktop/vxy.txt'
 path_Te = '/Users/songyunlong/Desktop/Te.txt'
 path_client = '/Users/songyunlong/Desktop/client.txt'
 path_B = '/Users/songyunlong/Desktop/B.txt'
-
+path_server_B_pre = '/root/LatencyOptimizationfile/'
 def fun(x, lock):
     print('begin')
     lock.acquire()
     print(x)
-    if not os.path.exists(path_vxy):
-        os.mknod(path_vxy)
+    # if not os.path.exists(path_vxy):
+    #     os.mknod(path_vxy)
     with open(file='/Users/songyunlong/Desktop/vxy.txt', mode='a') as f:
-        f.write('%s %s' % (x[0], x[-1]) + '\n')
+        f.write('nishi{0},woshi{1}'.format(x, 3) + '\n')
     lock.release()
     print('end')
 
 class datagenerator:
-    def __init__(self, func):
+    def __init__(self, func, client_num):
         """
         构造函数
         :param func: 单线程执行函数
+        :param client_num: 移动用户总数
         """
         self._func = func
+        self._client_num = client_num
         # self._vxy_client_range = None
         # self._T_epsilon = None
         # self._client_num = None
@@ -73,20 +75,26 @@ class datagenerator:
     def _recordingdata(self, arg, mutex):
         # print(arg)
         if self._arg_name == 'vxy_client_range':
-            result = self._func(vxy_client_range=arg)
+            result = self._func(vxy_client_range=arg, client_num=self._client_num)
         elif self._arg_name == 'T_epsilon':
-            result = self._func(T_epsilon=arg)
+            result = self._func(T_epsilon=arg, client_num=self._client_num)
         elif self._arg_name == 'client_num':
             result = self._func(client_num=arg)
         else:
-            result = self._func(B=arg)
+            result = self._func(B=arg, client_num=self._client_num)
         mutex.acquire()
-        with open(file=path_client, mode='a') as f:
-            f.write('%s %s' % (arg, result))
+        print('带宽为{0}时模型的总时延为:{1}'.format(arg, result))
+        with open(file=path_server_B_pre+'B_'+str(self._client_num)+'.txt', mode='a') as f:
+            f.write('带宽为{0}时模型的总时延为:{1}'.format(arg, result) + '\n')
         mutex.release()
 
 
 if __name__ == '__main__':
+    import sys
+    # print(sys.argv[0])
+    print(sys.argv[1])
+    print(sys.argv[2])
+    # print(r'.')
     pool = multiprocessing.Pool(processes=6)
     lock = multiprocessing.Lock()
     l1 = [float(i) for i in range(10)]

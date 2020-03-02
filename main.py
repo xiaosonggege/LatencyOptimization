@@ -78,7 +78,7 @@ def main_function(vxy_client_range=(-60, 60), T_epsilon=8*60, client_num=1000, B
     # print('最优时延结果为: %s' % res.fun)
     # print('取得最优时延时优化参数向量为:\n', res.x)
     # print('迭代次数为: %s' % res.nit)
-    # print('迭代成功？ %s' % res.success)
+    print('迭代成功？ %s' % res.success)
 
     #画图专区
     # print(map.clients_pos)
@@ -87,9 +87,9 @@ def main_function(vxy_client_range=(-60, 60), T_epsilon=8*60, client_num=1000, B
     # print(map.Obclient)
     # print(map.MECserver_vector)
     # plotfun(map.clients_pos, map.Obclient, *map.MECserver_for_obclient)
-    plotfun(map.clients_pos, map.Obclient, *map.MECserver_vector)
-    return 0
-    # return res.fun
+    # plotfun(map.clients_pos, map.Obclient, *map.MECserver_vector)
+    # return 0
+    return res.fun
 
 
 if __name__ == '__main__':
@@ -172,10 +172,12 @@ if __name__ == '__main__':
             ax.plot(x_, y_down, c='y')
             if flag:
                 ax.plot(x_TH, y_THup, c='g', label='LowerRange')
-                flag = 0
             else:
                 ax.plot(x_TH, y_THup, c='g')
             ax.plot(x_TH, y_THdown, c='g')
+            if flag:
+                ax.scatter(x=pos[0], y=pos[-1], c='m', label='MECServer')
+                flag = 0
             ax.scatter(x=pos[0], y=pos[-1], c='m')
         ax.scatter(x=clxs, y=clys, s=6, label='clients')
         ax.scatter(x=obclx, y=obcly, c='r', label='Obclient')
@@ -191,7 +193,7 @@ if __name__ == '__main__':
         ax.legend(loc='upper left')
         fig.show()
 
-    main_function(plotfun=plotfun1)
+    # main_function(plotfun=plotfun1)
     def plotfun2():
         T_e = [e * 60 for e in range(1, 11)]
         #Vmax=120
@@ -227,11 +229,12 @@ if __name__ == '__main__':
         plt.show()
     # plotfun3()
 #########################多进程生成数据############################
-    # print('开始执行多进程')
-    # dg = datagenerator(func=main_function)
+    import sys
+    print('开始执行多进程')
+    dg = datagenerator(func=main_function, client_num=sys.argv[1])
     # # dg.name('vxy_client_range', [(-e, e) for e in range(15, 65, 5)])
-    # dg.name('client_num', [e for e in range(550, 1001, 50)])
-    # # dg.name('B', [e * 1e+6 for e in range(1, 11)])
+    # dg.name('client_num', [e for e in range(1000, 7700, 700)])
+    dg.name('B', np.linspace(5.2, 7, 10)*1e6)
     # # dg.name('T_epsilon', [e * 5 * 60 for e in range(1, 11)])
-    # dg.multiprocess()
-    # print('多进程结束')
+    dg.multiprocess()
+    print('多进程结束')

@@ -380,8 +380,8 @@ class Map:
         """
         #client_vector是由中心服务器筛选出来的用户数量
         client_vector_ = self.simulation(R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client)
-        if client_vector_:
-            print('中心服务器筛选出来的用户数量为 %s' % client_vector_)
+        # if client_vector_:
+        #     print('中心服务器筛选出来的用户数量为 %s' % client_vector_)
         # alphas = Map.param_tensor(param_range=(0, 1), param_size=[1, self.__client_num - 1])
         alphas = Map.param_tensor(param_range=(0, 1), param_size=[1, len(self.__obclient.D_vector)])
         def fun(alphas):
@@ -407,8 +407,8 @@ class Map:
                 {'type': 'ineq', 'fun': lambda alphas: - alphas.T + 1}]
 
         # print(len(cons))
-        res = 0 #绘图时无需优化操作
-        # res = minimize(fun, alphas, method=op_function, constraints=cons) #需要优化时打开
+        # res = 0 #绘图时无需优化操作
+        res = minimize(fun, alphas, method=op_function, constraints=cons) #需要优化时打开
 
 
         # #测试部分
