@@ -407,8 +407,8 @@ class Map:
                 {'type': 'ineq', 'fun': lambda alphas: - alphas.T + 1}]
 
         # print(len(cons))
-        # res = 0 #绘图时无需优化操作
-        res = minimize(fun, alphas, method=op_function, constraints=cons) #需要优化时打开
+        res = 0 #绘图时无需优化操作
+        # res = minimize(fun, alphas, method=op_function, constraints=cons, options={'maxiter':8}) #需要优化时打开
 
 
         # #测试部分

@@ -31,8 +31,8 @@ def main_function(vxy_client_range=(-60, 60), T_epsilon=8*60, client_num=1000, B
     y_map = 1e5
     client_num = client_num
     MECserver_num = 4
-    R_client_mean = 1e3
-    R_MEC_mean = 1e5
+    R_client_mean = 1e3 #HZ
+    R_MEC_mean = 1e5 #Hz  #单个计算任务量均值在1000bit
     vxy_client_range = vxy_client_range #(-15, 15)
     T_epsilon = T_epsilon #5 * 60
     Q_client = 1e2
@@ -77,8 +77,8 @@ def main_function(vxy_client_range=(-60, 60), T_epsilon=8*60, client_num=1000, B
     # print(res)
     # print('最优时延结果为: %s' % res.fun)
     # print('取得最优时延时优化参数向量为:\n', res.x)
-    # print('迭代次数为: %s' % res.nit)
-    print('迭代成功？ %s' % res.success)
+    # print('client={0}时迭代次数为: {1}'.format(client_num, res.nit))
+    # print('迭代成功？ %s' % res.success)
 
     #画图专区
     # print(map.clients_pos)
@@ -87,9 +87,9 @@ def main_function(vxy_client_range=(-60, 60), T_epsilon=8*60, client_num=1000, B
     # print(map.Obclient)
     # print(map.MECserver_vector)
     # plotfun(map.clients_pos, map.Obclient, *map.MECserver_for_obclient)
-    # plotfun(map.clients_pos, map.Obclient, *map.MECserver_vector)
-    # return 0
-    return res.fun
+    plotfun(map.clients_pos, map.Obclient, *map.MECserver_vector)
+    return 0
+    # return res.fun
 
 
 if __name__ == '__main__':
@@ -119,8 +119,8 @@ if __name__ == '__main__':
         MECServer_axis, r, r_TH = MECSever
         # print(r, r_TH)
         fig, ax = plt.subplots()
-        ax.scatter(x=clxs, y=clys, s=6, label='clients')
-        ax.scatter(x=obclx, y=obcly, s=19, c='r', label='Obclient')
+        ax.scatter(x=clxs, y=clys, s=6, label='mobile users')
+        ax.scatter(x=obclx, y=obcly, s=19, c='r', label='target user')
         ax.scatter(x=MECServer_axis[0], y=MECServer_axis[-1], c='m', label='MECServer')
         #画圆区域
         x = np.arange(MECServer_axis[0]-r, 1e5, 0.1)
@@ -166,21 +166,21 @@ if __name__ == '__main__':
             y_THup = circle_up(x=pos[0], y=pos[-1], r_TH=r_TH, x_TH=x_TH)
             y_THdown = circle_down(x=pos[0], y=pos[-1], r_TH=r_TH, x_TH=x_TH)
             if flag:
-                ax.plot(x_, y_up, c='y', label='UpperGround')
+                ax.plot(x_, y_up, c='y', label='Service boundary')
             else:
                 ax.plot(x_, y_up, c='y')
             ax.plot(x_, y_down, c='y')
             if flag:
-                ax.plot(x_TH, y_THup, c='g', label='LowerRange')
+                ax.plot(x_TH, y_THup, c='g', label='Lower bound of edge region')
             else:
                 ax.plot(x_TH, y_THup, c='g')
             ax.plot(x_TH, y_THdown, c='g')
             if flag:
-                ax.scatter(x=pos[0], y=pos[-1], c='m', label='MECServer')
+                ax.scatter(x=pos[0], y=pos[-1], c='m', label='edge Servers')
                 flag = 0
             ax.scatter(x=pos[0], y=pos[-1], c='m')
-        ax.scatter(x=clxs, y=clys, s=6, label='clients')
-        ax.scatter(x=obclx, y=obcly, c='r', label='Obclient')
+        ax.scatter(x=clxs, y=clys, s=6, label='mobile users')
+        ax.scatter(x=obclx, y=obcly, c='r', label='target user')
 
         def formatnum(x, pos):
             return '$%.1f$x$10^{5}$' % (x / 100000)
@@ -193,7 +193,7 @@ if __name__ == '__main__':
         ax.legend(loc='upper left')
         fig.show()
 
-    # main_function(plotfun=plotfun1)
+    main_function(plotfun=plotfun1)
     def plotfun2():
         T_e = [e * 60 for e in range(1, 11)]
         #Vmax=120
@@ -203,38 +203,110 @@ if __name__ == '__main__':
         #Vmax=60
         clients_choice_num3 = [2, 11, 20, 43, 45, 53, 78, 105, 117, 127]
         fig, ax = plt.subplots()
-        ax.plot(T_e, clients_choice_num1, c='r', marker='<', label='Vmax=120km/h')
-        ax.plot(T_e, clients_choice_num2, c='g', marker='*', label='Vmax=90km/h')
-        ax.plot(T_e, clients_choice_num3, c='b', marker='>', label='Vmax=60km/h')
+        ax.plot(T_e, clients_choice_num1, c='r', marker='<', label=r'$V_\max=120km/h$')
+        ax.plot(T_e, clients_choice_num2, c='g', marker='*', label=r'$V_\max=90km/h$')
+        ax.plot(T_e, clients_choice_num3, c='b', marker='>', label=r'$V_\max=60km/h$')
         plt.legend()
-        plt.xlabel('T_epsilon/s')
+        plt.xlabel(r'$T_\epsilon/s$')
         plt.ylabel('Number of mobile users filtered by the central server')
         plt.grid(axis='x', linestyle='-.')
         plt.grid(axis='y', linestyle='-.')
         plt.show()
     # plotfun2()
     def plotfun3():
-        client_nums = [e for e in range(1000, 7700, 700)]
-        Latencys = [1.684, 2.076, 2.711, 3.125, 3.340, 3.509, 3.880, 4.134, 4.528, 6.017]
+        client_nums = [e for e in range(1000, 7301, 700)]
+        Latencys = [2.206, 3.771, 4.634, 7.001, 8.957, 10.532, 12.137, 14.384, 15.779, 28.947]
         client_nums_choice = [220, 391, 583, 758, 913, 1069, 1295, 1436, 1627, 1779]
         fig, ax = plt.subplots()
         ax.plot(np.array(client_nums), Latencys, c='r', marker='.', label='Optimization success')
         ax.scatter(x=np.array([client_nums[-1]]), y=Latencys[-1], c='g', s=100, label='Optimization failed')
         plt.xlabel('Client Number')
         plt.ylabel('Latency-time/s')
-        plt.title('Line chart of total latency over number of mobile users')
+        # plt.title('Line chart of total latency over number of mobile users')
         plt.grid(axis='x', linestyle='-.')
         plt.grid(axis='y', linestyle='-.')
         plt.legend()
         plt.show()
     # plotfun3()
+#########################带宽与时延关系图##########################
+    # import re
+    # from matplotlib import ticker as mtick
+    # data = []
+    # data_all = []
+    # regex = re.compile(pattern='\d+.\d+')
+    # for i in [700, 2000, 7000]:
+    #     with open(file=r'/Users/songyunlong/Desktop/实验室/时延模型/file_%s.txt' % str(i), mode='r') as f:
+    #         while True:
+    #             line = f.readline()
+    #             if line:
+    #                 tuplist = regex.findall(line)
+    #                 if len(tuplist):
+    #                     data.append([float(i) for i in tuplist])
+    #             else:
+    #                 break
+    #     data = sorted(data, key=lambda x: x[0])
+    #     import copy
+    #     data_all.append([tup[-1] for tup in data])
+    #     data.clear()
+    # # for data in data_all:
+    # #     print(data)
+    # data_all = np.array(data_all)
+    # print(data_all[0, 0])
+    # fig, ax = plt.subplots()
+    # x = np.linspace(5.2, 7, 10)*1e6
+    # ax.plot(x, data_all[0], c='r', marker='.', label='client number=700')
+    # ax.plot(x, data_all[1], c='g', marker='>', label='client number=2000')
+    # ax.plot(x, data_all[2], c='b', marker='^', label='client number=7000')
+    # ax.set_xlabel('Bandwidth/MHz')
+    # ax.set_ylabel('Latency-time/s')
+    # ax.legend(loc='upper left')
+    #
+    # formatnumx = lambda x, pos: '$%.1f$x$10^{6}$' % (x / 1000000)
+    # formatterx = FuncFormatter(formatnumx)
+    # ax.xaxis.set_major_formatter(formatterx)
+    # fmt = lambda x, pos:'$%.2f$' % (x)
+    # yticks = FuncFormatter(fmt)
+    # ax.yaxis.set_major_formatter(yticks)
+    # ax.grid(axis='x', linestyle='-.')
+    # ax.grid(axis='y', linestyle='-.')
+    # ax.set_ylim((0, 25))
+    # fig.show()
+#########################时延下降模型##############################
+    import pandas as pd
+    def ploting():
+        fig, ax = plt.subplots()
+        x = np.linspace(1, 8, 8)
+        y_matrix = pd.DataFrame(
+            data=np.array([
+                [9.37, 0.1971, 0.1896, 0.1801, 0.1801, 0, 0, 0],
+                [19.12, 0.4164, 0.4103, 0.4021, 0.4021, 0, 0, 0],
+                [80.18, 1.6337, 1.6316, 1.613, 1.61, 0, 0, 0],
+                [113.03, 2.2190, 2.2179, 2.2084, 2.2033, 2.201, 2.20, 2.20],
+                [134.56, 2.8222, 2.8101, 2.8101, 0, 0, 0, 0]
+            ]).T,
+            columns=[100, 200, 600, 1000, 1200]
+        )
+        # print(y_matrix)
+        ax.plot(x[:-3], y_matrix[100][:-3], c='r', marker='.', label='client number=100')
+        ax.plot(x[:-3], y_matrix[200][:-3], c='g', marker='>', label='client number=200')
+        ax.plot(x[:-3], y_matrix[600][:-3], c='b', marker='<', label='client number=600')
+        ax.plot(x, y_matrix[1000], c='y', marker='^', label='client number=1000')
+        ax.plot(x[:-4], y_matrix[1200][:-4], c='m', marker='o', label='client number=1200')
+        ax.set_xlabel('Iterations/times')
+        ax.set_ylabel('Latency-time/s')
+        ax.legend(loc='upper right')
+        ax.grid(axis='x', linestyle='-.')
+        ax.grid(axis='y', linestyle='-.')
+        # ax.set_ylim(0, 25)
+        fig.show()
+    # ploting()
 #########################多进程生成数据############################
-    import sys
-    print('开始执行多进程')
-    dg = datagenerator(func=main_function, client_num=sys.argv[1])
-    # # dg.name('vxy_client_range', [(-e, e) for e in range(15, 65, 5)])
-    # dg.name('client_num', [e for e in range(1000, 7700, 700)])
-    dg.name('B', np.linspace(5.2, 7, 10)*1e6)
-    # # dg.name('T_epsilon', [e * 5 * 60 for e in range(1, 11)])
-    dg.multiprocess()
-    print('多进程结束')
+    # import sys
+    # print('开始执行多进程')
+    # dg = datagenerator(func=main_function, client_num=int(sys.argv[1]))
+    # # # dg.name('vxy_client_range', [(-e, e) for e in range(15, 65, 5)])
+    # dg.name('client_num', [1000])
+    # # dg.name('B', np.linspace(5.2, 7, 10)*1e6)
+    # # # dg.name('T_epsilon', [e * 5 * 60 for e in range(1, 11)])
+    # dg.multiprocess()
+    # print('多进程结束')

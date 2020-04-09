@@ -41,7 +41,7 @@ def fun(x, lock):
     print('end')
 
 class datagenerator:
-    def __init__(self, func, client_num):
+    def __init__(self, func, client_num=None):
         """
         构造函数
         :param func: 单线程执行函数
@@ -83,17 +83,18 @@ class datagenerator:
         else:
             result = self._func(B=arg, client_num=self._client_num)
         mutex.acquire()
-        print('带宽为{0}时模型的总时延为:{1}'.format(arg, result))
-        with open(file=path_server_B_pre+'B_'+str(self._client_num)+'.txt', mode='a') as f:
-            f.write('带宽为{0}时模型的总时延为:{1}'.format(arg, result) + '\n')
+        # print('带宽为{0}时模型的总时延为:{1}'.format(arg, result))
+        print('用户数为{0}时模型的总时延为:{1}'.format(arg, result))
+        # with open(file=path_server_B_pre+'B_'+str(self._client_num)+'.txt', mode='a') as f:
+        #     f.write('带宽为{0}时模型的总时延为:{1}'.format(arg, result) + '\n')
         mutex.release()
 
 
 if __name__ == '__main__':
     import sys
     # print(sys.argv[0])
-    print(sys.argv[1])
-    print(sys.argv[2])
+    print(int(sys.argv[1])+1)
+    print(int(sys.argv[2])+2)
     # print(r'.')
     pool = multiprocessing.Pool(processes=6)
     lock = multiprocessing.Lock()
