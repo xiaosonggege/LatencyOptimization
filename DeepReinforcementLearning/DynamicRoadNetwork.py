@@ -58,6 +58,12 @@ class DynamicEnvironment:
         #将云端任务量存储阈值在当前那值基础上增减
         pass
 
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        pass
+
 
 
 if __name__ == '__main__':
