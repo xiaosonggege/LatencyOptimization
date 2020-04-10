@@ -12,8 +12,8 @@ import numpy as np
 import sympy
 from scipy.optimize import minimize
 import scipy.integrate as si
-from ClientFile import Client, ObjectClient
-from ServerFile import Server, MECServer, CenterServer
+from RoadNetwork.ClientFile import Client, ObjectClient
+from RoadNetwork.ServerFile import Server, MECServer, CenterServer
 
 #对为目标client服务的边缘Server描述符
 class AttributePropertyMEC:
@@ -367,16 +367,16 @@ class Map:
         # print(type(time_total))
         return time_total
 
-    def solve_problem(self, R_client, v_x, v_y, x_client, y_client, op_function):
+    def solve_problem(self, R_client, v_x, v_y, x_client, y_client, op_function='text'):
         """
         :param R_client: 目标用户本地cpu计算速率
         :param v_x: 目标用户移动速度x分量
         :param v_y: 目标用户移动速度y分量
         :param x_client: 目标用户位置坐标x分量
         :param y_client: 目标用户位置坐标y分量
-        :param op_function: str, 优化方法名称
+        :param op_function: str, 优化方法名称，默认为'text'为输出0，'latency'为直接输出时延，'method'为根据method名进行优化
         :param T_TH: 对总时延的约束
-        return None
+        :return: 时延
         """
         #client_vector是由中心服务器筛选出来的用户数量
         client_vector_ = self.simulation(R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client)
@@ -407,12 +407,13 @@ class Map:
                 {'type': 'ineq', 'fun': lambda alphas: - alphas.T + 1}]
 
         # print(len(cons))
-        res = 0 #绘图时无需优化操作
-        # res = minimize(fun, alphas, method=op_function, constraints=cons, options={'maxiter':8}) #需要优化时打开
+        if op_function == 'text':
+            res = 0
+        elif op_function == 'latency':
+            res = fun(alphas=alphas)
+        else:
+            res = minimize(fun, alphas, method=op_function, constraints=cons, options={'maxiter':8}) #需要优化时打开
 
-
-        # #测试部分
-        # res = fun(alphas)
         return res
 
 
