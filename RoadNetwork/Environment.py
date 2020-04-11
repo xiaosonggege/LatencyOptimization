@@ -44,6 +44,7 @@ class AttributePropertyOb:
         self._name = name
     def __get__(self, instance, owner):
         return instance.__dict__[self._name].axis
+
 class ClientVectorProperty:
     def __init__(self, name):
         self._name = name
@@ -56,7 +57,17 @@ class ClientVectorProperty:
         :param value: tuple，Rc, vx, vy, x, y
         :return: None
         """
-        pass
+        clients_R_client, clients_v, clients_posx, clients_posy = tuple
+        instance.__dict__[self._name] = [Client(R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client)
+                                         for R_client, v_x, v_y, x_client, y_client in
+                                         zip(
+                                             clients_R_client,
+                                             clients_v[:, 0],
+                                             clients_v[:, -1],
+                                             clients_posx,
+                                             clients_posy
+                                         )]
+
 
 class Map:
     """
