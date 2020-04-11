@@ -127,6 +127,13 @@ class ObjectClient(Client):
         self.__Q_used = ObjectClient.rng.uniform(low=0, high=1)  # 根据实际情况修改
 
     @property
+    def Q_client(self):
+        return self.__Q_client
+    @Q_client.setter
+    def Q_client(self, value):
+        self.__Q_client = value
+
+    @property
     def alpha_vector(self):
         """
         返回目标client的任务量权值向量

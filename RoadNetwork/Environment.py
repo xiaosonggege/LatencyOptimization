@@ -54,7 +54,7 @@ class ClientVectorProperty:
         """
         更新移动用户向量
         :param instance: object of Map
-        :param value: tuple，Rc, vx, vy, x, y
+        :param value: tuple，Rc, v, x, y
         :return: None
         """
         clients_R_client, clients_v, clients_posx, clients_posy = tuple
@@ -79,16 +79,11 @@ class MECServerVectorProperty:
         """
         更新所有边缘服务器
         :param instance: object of Map
-        :param value: tuple, client_vector, Rm, Q_MEC
+        :param value: tuple, Rm, Q_MEC
         :return: None
         """
-        # MECserver的cpu计算速率向量 instance.__dict__['_Map']
-        client_vector, MECservers_R_MEC, Q_MEC = value
-        # MECservers_R_MEC = Map.param_tensor_gaussian(mean=self.__R_MEC_mean, var=1, param_size=self.__MECserver_num)
-        # 边缘服务器间等距且与边界等距，此分法服务半径大，各边缘服务器间交叉区域大
-        # MECservers_posx = np.linspace(0, self.__x_map, 2 + int(np.sqrt(self.__MECserver_num)))[1:-1]
-        # MECservers_posy = np.linspace(0, self.__y_map, 2 + int(np.sqrt(self.__MECserver_num)))[1:-1]
-        # 边缘服务器间等距且与边界不等距，此分法服务半径相对小，各边缘服务器间交叉区域小
+        # MECserver的cpu计算速率向量
+        MECservers_R_MEC, Q_MEC = value
         EdgePoint_calc = lambda para1, para2: \
             1 / (2 * np.sqrt(instance.__dict__['_Map__MECserver_num'])) * para1 + (1 - 1 / (2 * np.sqrt(instance.__dict__['_Map__MECserver_num']))) * para2
         MECservers_posx = np.linspace(EdgePoint_calc(0, instance.__dict__['_Map__x_map']), EdgePoint_calc(instance.__dict__['_Map__x_map'], 0),
@@ -111,8 +106,7 @@ class MECServerVectorProperty:
                                        np.ones(shape=instance.__dict__['_Map__MECserver_num']) * instance.__dict__['_Map__r_edge_th']
                                    )]
         for MECserver in instance.__dict__[self._name]:
-            instance.__class__.clientsForMECserver(client_vector=client_vector, MECserver=MECserver)
-            # print(type(MECserver.client_vector), len(MECserver.client_vector))
+            instance.__class__.clientsForMECserver(client_vector=instance.__dict__['_Map__client_vector'], MECserver=MECserver)
 
 
 class Map:
@@ -209,7 +203,7 @@ class Map:
         self.__delta = delta
         self.__CenterMECserver = CenterServer(x_server=x_map * 2, y_server=y_map * 2, T_epsilon=self.__T_epsilon)
         #用户速度矩阵
-        clients_v = Map.param_tensor(param_range=self.__vxy_client_range, param_size=(self.__client_num-1, 2))
+        self.__clients_v = Map.param_tensor(param_range=self.__vxy_client_range, param_size=(self.__client_num-1, 2))
 
         clients_posx = Map.param_tensor(param_range=(0, self.__x_map), param_size=self.__client_num-1)
         clients_posy = Map.param_tensor(param_range=(0, self.__y_map), param_size=self.__client_num-1)
@@ -217,7 +211,7 @@ class Map:
         self.__clients_pos = np.hstack((clients_posx[:, np.newaxis], clients_posy[:, np.newaxis])) ##打印
 
         #用户cpu计算速率向量
-        clients_R_client = Map.param_tensor_gaussian(mean=self.__R_client_mean, var=1, param_size=self.__client_num-1)
+        self.__clients_R_client = Map.param_tensor_gaussian(mean=self.__R_client_mean, var=1, param_size=self.__client_num-1)
         # 子任务序列的权值分配初始化为0向量
         # self.__alpha_vector = np.zeros(shape=[1, self.__client_num-1])
 
@@ -225,16 +219,16 @@ class Map:
         self.__client_vector = [Client(R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client)
                                 for R_client, v_x, v_y, x_client, y_client in
                                 zip(
-                                    clients_R_client,
-                                    clients_v[:, 0],
-                                    clients_v[:, -1],
-                                    clients_posx,
-                                    clients_posy
+                                    self.__clients_R_client,
+                                    self.__clients_v[:, 0],
+                                    self.__clients_v[:, -1],
+                                    self.__clients_pos[:, 0],
+                                    self.__clients_pos[:, -1]
                                 )]
         # print(self.__client_vector[0].axis)
 
         #MECserver的cpu计算速率向量
-        MECservers_R_MEC = Map.param_tensor_gaussian(mean = self.__R_MEC_mean, var=1, param_size=self.__MECserver_num)
+        self.__MECservers_R_MEC = Map.param_tensor_gaussian(mean = self.__R_MEC_mean, var=1, param_size=self.__MECserver_num)
         #边缘服务器间等距且与边界等距，此分法服务半径大，各边缘服务器间交叉区域大
         # MECservers_posx = np.linspace(0, self.__x_map, 2 + int(np.sqrt(self.__MECserver_num)))[1:-1]
         # MECservers_posy = np.linspace(0, self.__y_map, 2 + int(np.sqrt(self.__MECserver_num)))[1:-1]
@@ -254,7 +248,7 @@ class Map:
                                 self.__MECservers_pos[:, 0],
                                 self.__MECservers_pos[:, -1],
                                 np.ones(shape=self.__MECserver_num) * self.__server_r,
-                                MECservers_R_MEC,
+                                self.__MECservers_R_MEC,
                                 np.ones(shape=self.__MECserver_num) * self.__Q_MEC,
                                 np.ones(shape=self.__MECserver_num) * self.__r_edge_th
                             )]
@@ -262,16 +256,42 @@ class Map:
             Map.clientsForMECserver(client_vector=self.__client_vector, MECserver=MECserver)
             # print(type(MECserver.client_vector), len(MECserver.client_vector))
 
-    @property
+    client_vector = ClientVectorProperty('_Map__client_vector')
+    mecserver_vector = MECServerVectorProperty('_Map__MECserver_vector')
+
+    @property #移动用户速度
+    def clients_v(self):
+        """
+        :return: np.ndarray, shape=(clients_num-1, 2)
+        """
+        return self.__clients_v
+
+    @property #移动用户本地计算速率
+    def clients_R_client(self):
+        return self.__clients_R_client
+
+    @property #服务器端计算速率
+    def MECservers_R_MEC(self):
+        return self.__MECservers_R_MEC
+
+    @property #移动用户位置
     def clients_pos(self):
         return self.__clients_pos
+    @clients_pos.setter
+    def clients_pos(self, value):
+        self.__clients_pos = value
 
-    @property
+    @property #MEC任务量阈值
+    def Q_MEC(self):
+        return self.__Q_MEC
+
+    @property #移动用户任务量阈值
     def Q_client(self):
         return self.__Q_client
     @Q_client.setter
     def Q_client(self, value):
         self.__Q_client = value
+
 
     def point_of_intersection_calculating(self):
         """
@@ -350,17 +370,26 @@ class Map:
         t2 = (axis_b[0] - self.__obclient.axis[0]) / self.__obclient.v[0]
         self.__t_stay = t1 if t1 else t2
 
-    #MECserver_for_obclient描述符
-    MECserver_for_obclient = AttributePropertyMEC('_Map__MECserver_for_obclient')
-    Obclient = AttributePropertyOb('_Map__obclient')
-    MECserver_vector = AttributePropertyMEC_series('_Map__MECserver_vector')
+    #描述符
+    MECserver_for_obclient = AttributePropertyMEC('_Map__MECserver_for_obclient') #画图
+    Obclient = AttributePropertyOb('_Map__obclient') #画图
+    MECserver_vector = AttributePropertyMEC_series('_Map__MECserver_vector') #画图
+    #
+    @property
+    def ob_client(self):
+        return self.__obclient
+
+    @property
+    def mecserver_for_obclient(self):
+        return self.__MECserver_for_obclient
+
     def transmitting_R(self, is_client=1):
         """
         计算无线信道的传输速率均值
         :param is_client: bool, 指示当前是否是对client和MECserver之间进行计算
         :return: 无线信道传输时延
         """
-        t = sympy.symbols('t')
+        # t = sympy.symbols('t')
         def f(t):
             """"""
             # if is_client:
