@@ -68,6 +68,52 @@ class ClientVectorProperty:
                                              clients_posy
                                          )]
 
+class MECServerVectorProperty:
+    def __init__(self, name):
+        self._name = name
+
+    def __get__(self, instance, owner):
+        return instance.__dict__[self._name]
+
+    def __set__(self, instance, value:tuple):
+        """
+        更新所有边缘服务器
+        :param instance: object of Map
+        :param value: tuple, client_vector, Rm, Q_MEC
+        :return: None
+        """
+        # MECserver的cpu计算速率向量 instance.__dict__['_Map']
+        client_vector, MECservers_R_MEC, Q_MEC = value
+        # MECservers_R_MEC = Map.param_tensor_gaussian(mean=self.__R_MEC_mean, var=1, param_size=self.__MECserver_num)
+        # 边缘服务器间等距且与边界等距，此分法服务半径大，各边缘服务器间交叉区域大
+        # MECservers_posx = np.linspace(0, self.__x_map, 2 + int(np.sqrt(self.__MECserver_num)))[1:-1]
+        # MECservers_posy = np.linspace(0, self.__y_map, 2 + int(np.sqrt(self.__MECserver_num)))[1:-1]
+        # 边缘服务器间等距且与边界不等距，此分法服务半径相对小，各边缘服务器间交叉区域小
+        EdgePoint_calc = lambda para1, para2: \
+            1 / (2 * np.sqrt(instance.__dict__['_Map__MECserver_num'])) * para1 + (1 - 1 / (2 * np.sqrt(instance.__dict__['_Map__MECserver_num']))) * para2
+        MECservers_posx = np.linspace(EdgePoint_calc(0, instance.__dict__['_Map__x_map']), EdgePoint_calc(instance.__dict__['_Map__x_map'], 0),
+                                      int(np.sqrt(instance.__dict__['_Map__MECserver_num'])))
+        MECservers_posy = np.linspace(EdgePoint_calc(0, instance.__dict__['_Map__y_map']), EdgePoint_calc(instance.__dict__['_Map__y_map'], 0),
+                                      int(np.sqrt(instance.__dict__['_Map__MECserver_num'])))
+        # MECserver的位置坐标
+        instance.__dict__['_Map__MECservers_pos'] = np.array([(x, y) for x in MECservers_posx for y in MECservers_posy])
+        instance.__class__.filter_list = [0 for _ in range(instance.__dict__['_Map__client_num'])]  # 初始化记录列表为全0
+        # MECserver序列
+        instance.__dict__[self._name] = [MECServer(x_server=x_server, y_server=y_server, service_r=service_r, R_MEC=R_MEC,
+                                             Q_MEC=Q_MEC, r_edge_th=r_edge_th)
+                                   for x_server, y_server, service_r, R_MEC, Q_MEC, r_edge_th in
+                                   zip(
+                                       instance.__dict__['_Map__MECservers_pos'][:, 0],
+                                       instance.__dict__['_Map__MECservers_pos'][:, -1],
+                                       np.ones(shape=instance.__dict__['_Map__MECserver_num']) * instance.__dict__['_Map__server_r'],
+                                       MECservers_R_MEC,
+                                       np.ones(shape=instance.__dict__['_Map__MECserver_num']) * Q_MEC,
+                                       np.ones(shape=instance.__dict__['_Map__MECserver_num']) * instance.__dict__['_Map__r_edge_th']
+                                   )]
+        for MECserver in instance.__dict__[self._name]:
+            instance.__class__.clientsForMECserver(client_vector=client_vector, MECserver=MECserver)
+            # print(type(MECserver.client_vector), len(MECserver.client_vector))
+
 
 class Map:
     """
@@ -219,6 +265,13 @@ class Map:
     @property
     def clients_pos(self):
         return self.__clients_pos
+
+    @property
+    def Q_client(self):
+        return self.__Q_client
+    @Q_client.setter
+    def Q_client(self, value):
+        self.__Q_client = value
 
     def point_of_intersection_calculating(self):
         """

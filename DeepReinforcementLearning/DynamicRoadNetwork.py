@@ -71,6 +71,8 @@ class DynamicEnvironment:
         #将云端计算速率在当前值基础上增减, Dx=6000
         #将云端任务量存储阈值在当前那值基础上增减, Dx=10000
 
+        #latency
+        latency = self.map.solve_problem()
 
 
     def __iter__(self):
