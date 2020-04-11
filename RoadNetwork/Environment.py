@@ -494,7 +494,7 @@ class Map:
             """
             优化所需函数
             :param alphas: 目标client权值向量
-            :return: 时延
+            :return: 0 / res / Qc_real_res, Qm_real_res, res
             """
             time_all = self.time_total_calculating(alphas=alphas)
             return time_all
@@ -514,13 +514,15 @@ class Map:
 
         # print(len(cons))
         if op_function == 'text':
-            res = 0
+            return 0
         elif op_function == 'latency':
             res = fun(alphas=alphas)
+            return res
         else:
+            client_constraint = self.__MECserver_for_obclient.Q_res() -  self.__obclient.task_distributing(alphas=alphas)
+            mec_constraint = self.__obclient.Q_res() + self.__obclient.task_distributing(alphas=alphas) - np.sum(self.__obclient.D_vector)
             res = minimize(fun, alphas, method=op_function, constraints=cons, options={'maxiter':8}) #需要优化时打开
-
-        return res
+            return client_constraint, mec_constraint, res
 
 
 

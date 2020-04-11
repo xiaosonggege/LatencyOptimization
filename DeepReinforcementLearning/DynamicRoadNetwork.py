@@ -67,7 +67,7 @@ class DynamicEnvironment:
     def change_environment(self):
         """
         动态改变环境
-        :return: v0x, v0y, Rc, Qc, Rm, Qm, Qc_real, Q_m_real, latency
+        :return: v0x, v0y, Rc, Qc, Rm, Qm, Qc_real_res, Q_m_real_res, D_vector, alpha_vector, latency
         """
         next_state_func = np.frompyfunc(func=DynamicEnvironment.next_state, nin=2, nout=1)
         #将移动速度在当前值基础上增减, Dx=21
@@ -101,10 +101,11 @@ class DynamicEnvironment:
         axis = obclient.axis
         x_new, y_new = axis[0] - v_new[0], axis[-1] - v_new[-1]
         #latency
-        latency = self.map.solve_problem(R_client=r_client_new, v_x=v_new[0], v_y=v_new[-1],
+        client_constraint, mec_constraint, latency = self.map.solve_problem(R_client=r_client_new, v_x=v_new[0], v_y=v_new[-1],
                                          x_client=x_new, y_client=y_new)
         return obclient.v[0], obclient.v[-1], r_client_new, obclient.Q_res(),\
-               mecservers_R_MEC_new, self.map.mecserver_for_obclient.Q_res(), latency
+               mecservers_R_MEC_new, self.map.mecserver_for_obclient.Q_res(), client_constraint, mec_constraint, \
+               obclient.D_vector, obclient.alpha_vector, latency
 
 
     def __iter__(self):
