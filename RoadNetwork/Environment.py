@@ -44,6 +44,19 @@ class AttributePropertyOb:
         self._name = name
     def __get__(self, instance, owner):
         return instance.__dict__[self._name].axis
+class ClientVectorProperty:
+    def __init__(self, name):
+        self._name = name
+    def __get__(self, instance, owner):
+        return instance.__dict__[self._name]
+    def __set__(self, instance, value:tuple):
+        """
+        更新移动用户向量
+        :param instance: object of Map
+        :param value: tuple，Rc, vx, vy, x, y
+        :return: None
+        """
+        pass
 
 class Map:
     """

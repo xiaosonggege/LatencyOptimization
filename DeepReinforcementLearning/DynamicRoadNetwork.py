@@ -12,6 +12,20 @@ import numpy as np
 from RoadNetwork.Environment import Map
 
 class DynamicEnvironment:
+    #各个可变值的阈值边界
+    Rc_max = 1e3 #Hz
+    vxy_max = 60 #km/h
+    Qc_max = 1e2 #
+    Rm_max = 1e5 #Hz
+    Qm_max = 1e3 * 1000 #1000为用户数，实际可以考虑修改
+
+    @staticmethod
+    def next_state(loc, scale):
+        next_value = np.random.normal(loc=loc, scale=scale)
+        if next_value > loc:
+            next_value = 2 * loc - next_value
+        return next_value
+
     def __index__(self):
         self._x_map = 1e5
         self._y_map = 1e5
@@ -51,12 +65,13 @@ class DynamicEnvironment:
         )
 
     def change_environment(self):
-        #将移动速度在当前值基础上增减
-        #将本地计算速率在当前值基础上增减
-        #将本地任务量存储阈值在当前值基础上增减
-        #将云端计算速率在当前值基础上增减
-        #将云端任务量存储阈值在当前那值基础上增减
-        pass
+        #将移动速度在当前值基础上增减, Dx=21
+        #将本地计算速率在当前值基础上增减, Dx=100
+        #将本地任务量存储阈值在当前值基础上增减, DX=15
+        #将云端计算速率在当前值基础上增减, Dx=6000
+        #将云端任务量存储阈值在当前那值基础上增减, Dx=10000
+
+
 
     def __iter__(self):
         return self
