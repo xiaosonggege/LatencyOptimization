@@ -26,7 +26,15 @@ class DynamicEnvironment:
             next_value = 2 * loc - next_value
         return next_value
 
-    def __index__(self):
+    def _client_status_update(self, next_state_func:np.ufunc, clients_v:np.ndarray, clients_pos:np.ndarray):
+        """"""
+        #临时存储更新后的位置，如果出现越界现象，则后续需要更新
+        clients_pos_new_temp = clients_pos + clients_v
+        need_to_change_vx = ~((clients_pos_new_temp[:, 0] >= 0) & (clients_pos_new_temp[:, 0] <= self._x_map))
+        need_to_change_vy = ~((clients_pos_new_temp[:, 1] >= 0) & (clients_pos_new_temp[:, 1] <= self._y_map))
+        
+
+    def __init__(self):
         self._x_map = 1e5
         self._y_map = 1e5
         self._client_num = 3000
@@ -69,7 +77,7 @@ class DynamicEnvironment:
         动态改变环境
         :return: v0x, v0y, Rc, Qc, Rm, Qm, Qc_real_res, Q_m_real_res, D_vector, alpha_vector, latency
         """
-        next_state_func = np.frompyfunc(func=DynamicEnvironment.next_state, nin=2, nout=1)
+        next_state_func = np.frompyfunc(DynamicEnvironment.next_state, 2, 1)
         #将移动速度在当前值基础上增减, Dx=21
         #历史速度
         clients_v = self.map.clients_v
@@ -99,7 +107,7 @@ class DynamicEnvironment:
         v = obclient.v
         v_new = next_state_func(v, 21)
         axis = obclient.axis
-        x_new, y_new = axis[0] - v_new[0], axis[-1] - v_new[-1]
+        x_new, y_new = axis[0] + v_new[0], axis[-1] + v_new[-1]
         #latency
         client_constraint, mec_constraint, latency = self.map.solve_problem(R_client=r_client_new, v_x=v_new[0], v_y=v_new[-1],
                                          x_client=x_new, y_client=y_new)

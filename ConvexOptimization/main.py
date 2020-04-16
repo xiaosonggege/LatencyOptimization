@@ -72,8 +72,9 @@ def main_function(vxy_client_range=(-60, 60), T_epsilon=8*60, client_num=1000, B
         v_y=10,
         x_client=97779.54569559613, #Map.rng.uniform(low=0, high=x_map),
         y_client=88473.93449231013, #Map.rng.uniform(low=0, high=y_map),
-        op_function='SLSQP'
+        op_function='text'
     )
+
     # print(res)
     # print('最优时延结果为: %s' % res.fun)
     # print('取得最优时延时优化参数向量为:\n', res.x)
@@ -81,11 +82,11 @@ def main_function(vxy_client_range=(-60, 60), T_epsilon=8*60, client_num=1000, B
     # print('迭代成功？ %s' % res.success)
 
     #画图专区
-    # print(map.clients_pos)
+    print(map.clients_pos)
     # print(type(map.clients_pos), map.clients_pos.shape)
     # print(map.MECserver_for_obclient)
     # print(map.Obclient)
-    # print(map.MECserver_vector)
+    print(map.MECserver_vector)
     # plotfun(map.clients_pos, map.Obclient, *map.MECserver_for_obclient)
     plotfun(map.clients_pos, map.Obclient, *map.MECserver_vector)
     return 0
@@ -146,8 +147,10 @@ if __name__ == '__main__':
         plt.ylabel('y/m')
         plt.show()
     # main_function(plotfun=plotfun0)
+
     def plotfun1(clients_pos:list, obclient_pos:tuple, *MECSevers:tuple)->None:
         """"""
+        print('进来了')
         clxs, clys = np.split(ary=np.array(clients_pos), indices_or_sections=2, axis=1)
         obclx, obcly = np.split(ary=np.array(obclient_pos), indices_or_sections=2)
         MECServer_posx, MECServer_posy, r, r_TH = MECSevers
@@ -166,21 +169,21 @@ if __name__ == '__main__':
             y_THup = circle_up(x=pos[0], y=pos[-1], r_TH=r_TH, x_TH=x_TH)
             y_THdown = circle_down(x=pos[0], y=pos[-1], r_TH=r_TH, x_TH=x_TH)
             if flag:
-                ax.plot(x_, y_up, c='y', label='Service boundary')
+                ax.plot(x_, y_up, c='y', label='The boundary of the serving area')
             else:
                 ax.plot(x_, y_up, c='y')
             ax.plot(x_, y_down, c='y')
             if flag:
-                ax.plot(x_TH, y_THup, c='g', label='Lower bound of edge region')
+                ax.plot(x_TH, y_THup, c='g', label='Inner boundary of the border region')
             else:
                 ax.plot(x_TH, y_THup, c='g')
             ax.plot(x_TH, y_THdown, c='g')
             if flag:
-                ax.scatter(x=pos[0], y=pos[-1], c='m', label='edge Servers')
+                ax.scatter(x=pos[0], y=pos[-1], c='m', label='Edge servers')
                 flag = 0
             ax.scatter(x=pos[0], y=pos[-1], c='m')
-        ax.scatter(x=clxs, y=clys, s=6, label='mobile users')
-        ax.scatter(x=obclx, y=obcly, c='r', label='target user')
+        ax.scatter(x=clxs, y=clys, s=6, label='Mobile users')
+        # ax.scatter(x=obclx, y=obcly, c='r', label='target user')
 
         def formatnum(x, pos):
             return '$%.1f$x$10^{5}$' % (x / 100000)
@@ -192,8 +195,8 @@ if __name__ == '__main__':
         ax.set_ylabel('y/m')
         ax.legend(loc='upper left')
         fig.show()
-
     main_function(plotfun=plotfun1)
+
     def plotfun2():
         T_e = [e * 60 for e in range(1, 11)]
         #Vmax=120
