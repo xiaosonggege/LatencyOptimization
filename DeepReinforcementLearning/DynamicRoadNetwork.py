@@ -26,13 +26,22 @@ class DynamicEnvironment:
             next_value = 2 * loc - next_value
         return next_value
 
-    def _client_status_update(self, next_state_func:np.ufunc, clients_v:np.ndarray, clients_pos:np.ndarray):
+    def _client_status_update(self, clients_v:np.ndarray, clients_pos:np.ndarray):
         """"""
         #临时存储更新后的位置，如果出现越界现象，则后续需要更新
+        print(type(clients_v), clients_v.dtype, type(clients_pos), clients_pos.dtype)
         clients_pos_new_temp = clients_pos + clients_v
         need_to_change_vx = ~((clients_pos_new_temp[:, 0] >= 0) & (clients_pos_new_temp[:, 0] <= self._x_map))
         need_to_change_vy = ~((clients_pos_new_temp[:, 1] >= 0) & (clients_pos_new_temp[:, 1] <= self._y_map))
-        
+        if True in need_to_change_vx:
+            #将对应x方向出边界的移动用户速度反向，并重新计算x方向位置
+            clients_v[need_to_change_vx, 0] = -clients_v[need_to_change_vx, 0]
+        if True in need_to_change_vy:
+            #将对应y方向出边界的移动用户速度反向，并重新计算y方向位置
+            clients_v[need_to_change_vy, -1] = -clients_v[need_to_change_vy, -1]
+        print(type(clients_v), clients_v.dtype, type(clients_pos), clients_pos.dtype)
+        clients_pos += clients_v
+        return clients_v, clients_pos
 
     def __init__(self):
         self._x_map = 1e5
@@ -75,54 +84,89 @@ class DynamicEnvironment:
     def change_environment(self):
         """
         动态改变环境
-        :return: v0x, v0y, Rc, Qc, Rm, Qm, Qc_real_res, Q_m_real_res, D_vector, alpha_vector, latency
+        :return:
+        v0(0): obclient移动速度矢量
+        pos0(1): obclient位置坐标
+        Rc(2): obclient本地计算速率
+        Rm(3): MEC端任务计算速率
         """
         next_state_func = np.frompyfunc(DynamicEnvironment.next_state, 2, 1)
         #将移动速度在当前值基础上增减, Dx=21
         #历史速度
         clients_v = self.map.clients_v
-        clients_v_new = next_state_func(clients_v, 21)
+        # print(clients_v.dtype)
+        clients_v_new = np.asarray(next_state_func(clients_v, 21), 'float64')
+        # print(clients_v_new.shape)
+        # print(clients_v_new.dtype)
         #除目标client之外其它client的位置更新
-        self.map.clients_pos += clients_v_new
+        clients_v_new, clients_pos_new = self._client_status_update(clients_v=clients_v_new, clients_pos=self.map.clients_pos)
         #将本地计算速率在当前值基础上增减, Dx=100
         R_client = self.map.clients_R_client
-        R_client_new = next_state_func(R_client, 100)
-        #将本地任务量存储阈值在当前值基础上增减, DX=15
-        obclient_Q_client = self.map.ob_client.Q_client
-        obclient_Q_client_new = next_state_func(obclient_Q_client, 15)
+        R_client_new = np.asarray(next_state_func(R_client, 100), 'float64')
         #将云端计算速率在当前值基础上增减, Dx=6000
         mecservers_R_MEC = self.map.MECservers_R_MEC
-        mecservers_R_MEC_new = next_state_func(mecservers_R_MEC, 6000)
+        mecservers_R_MEC_new = np.asarray(next_state_func(mecservers_R_MEC, 6000), 'float64')
         #将云端任务量存储阈值在当前那值基础上增减, Dx=10000
         q_MEC = self.map.Q_MEC
-        q_MEC_new = next_state_func(q_MEC, 10000)
+        q_MEC_new = np.asarray(next_state_func(q_MEC, 10000), 'float64')
         #除目标用户外的其它用户属性更新
-        self.map.client_vector = (R_client_new, clients_v_new, clients_v_new[:, 0], clients_v_new[:, -1])
+        self.map.client_vector = (R_client_new, clients_v_new, clients_pos_new[:, 0], clients_pos_new[:, -1])
+        print('client_vector is finished')
         #更新MEC服务器
         self.map.mecserver_vector = (mecservers_R_MEC_new, q_MEC_new)
+        print('mecserver_vector is finished')
+        #将本地任务量存储阈值在当前值基础上增减, DX=15
+        obclient_Q_client = self.map.ob_client.Q_client
+        obclient_Q_client_new = np.asarray(next_state_func(obclient_Q_client, 15), 'float64')
         #获取目标client的属性，计算其更新属性
         obclient = self.map.ob_client
         r_client = obclient.R_client
-        r_client_new = next_state_func(r_client, 100)
+        r_client_new = np.asarray(next_state_func(r_client, 100), 'float64')
         v = obclient.v
-        v_new = next_state_func(v, 21)
+        v_new = np.asarray(next_state_func(v, 21), 'float64')
         axis = obclient.axis
-        x_new, y_new = axis[0] + v_new[0], axis[-1] + v_new[-1]
+        obclient_v_new, obclient_pos_new = self._client_status_update(clients_v=np.array(v_new), clients_pos=np.array(axis))
         #latency
-        client_constraint, mec_constraint, latency = self.map.solve_problem(R_client=r_client_new, v_x=v_new[0], v_y=v_new[-1],
-                                         x_client=x_new, y_client=y_new)
-        return obclient.v[0], obclient.v[-1], r_client_new, obclient.Q_res(),\
-               mecservers_R_MEC_new, self.map.mecserver_for_obclient.Q_res(), client_constraint, mec_constraint, \
-               obclient.D_vector, obclient.alpha_vector, latency
+        self.map.ob_client.Q_client = obclient_Q_client_new
+        return r_client_new, obclient_v_new, obclient_pos_new, mecservers_R_MEC_new
 
+    def get_state(self):
+        """
 
-    def __iter__(self):
+        :return:
+        """
+        obclient = self.map.ob_client
+        return obclient.v[0], obclient.v[-1], obclient.Q_res(), self.map.mecserver_for_obclient.Q_res(), \
+               obclient.D_vector
+
+    def get_alpha(self):
+        """
+
+        :return:
+        """
+        return self.map.ob_client.alpha_vector
+
+    def get_latency(self, r_client_new, obclient_v_new, obclient_pos_new):
+        """
+
+        :return:
+        """
+        client_Q_constraint, mec_Q_constraint, latency = self.map.solve_problem(R_client=r_client_new,
+                                                                            v_x=obclient_v_new[0],
+                                                                            v_y=obclient_v_new[-1],
+                                                                            x_client=obclient_pos_new[0],
+                                                                            y_client=obclient_pos_new[-1])
+        return client_Q_constraint, mec_Q_constraint, latency
+
+    def __enter__(self):
         return self
 
-    def __next__(self):
+    def __exit__(self, exc_type, exc_val, exc_tb):
         pass
 
 
 
 if __name__ == '__main__':
-    pass
+    with DynamicEnvironment() as d:
+        for i in range(20):
+            print(d.change_environment())

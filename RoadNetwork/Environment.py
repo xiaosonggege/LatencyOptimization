@@ -50,14 +50,14 @@ class ClientVectorProperty:
         self._name = name
     def __get__(self, instance, owner):
         return instance.__dict__[self._name]
-    def __set__(self, instance, value:tuple):
+    def __set__(self, instance, value):
         """
         更新移动用户向量
         :param instance: object of Map
         :param value: tuple，Rc, v, x, y
         :return: None
         """
-        clients_R_client, clients_v, clients_posx, clients_posy = tuple
+        clients_R_client, clients_v, clients_posx, clients_posy = value
         instance.__dict__[self._name] = [Client(R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client)
                                          for R_client, v_x, v_y, x_client, y_client in
                                          zip(
@@ -82,6 +82,7 @@ class MECServerVectorProperty:
         :param value: tuple, Rm, Q_MEC
         :return: None
         """
+        # print(instance.__class__)
         # MECserver的cpu计算速率向量
         MECservers_R_MEC, Q_MEC = value
         EdgePoint_calc = lambda para1, para2: \
@@ -516,13 +517,14 @@ class Map:
         if op_function == 'text':
             return 0
         elif op_function == 'latency':
+            client_constraint = self.__MECserver_for_obclient.Q_res() - self.__obclient.task_distributing(alphas=alphas)
+            mec_constraint = self.__obclient.Q_res() + self.__obclient.task_distributing(alphas=alphas) - np.sum(
+                self.__obclient.D_vector)
             res = fun(alphas=alphas)
-            return res
-        else:
-            client_constraint = self.__MECserver_for_obclient.Q_res() -  self.__obclient.task_distributing(alphas=alphas)
-            mec_constraint = self.__obclient.Q_res() + self.__obclient.task_distributing(alphas=alphas) - np.sum(self.__obclient.D_vector)
-            res = minimize(fun, alphas, method=op_function, constraints=cons, options={'maxiter':8}) #需要优化时打开
             return client_constraint, mec_constraint, res
+        else:
+            res = minimize(fun, alphas, method=op_function, constraints=cons, options={'maxiter':8}) #需要优化时打开
+            return res
 
 
 
