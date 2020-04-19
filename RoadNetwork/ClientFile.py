@@ -9,7 +9,7 @@
 @time: 2020/1/3 4:01 下午
 '''
 import numpy as np
-
+from collections.abc import Iterable
 
 class Client:
     """
@@ -195,6 +195,17 @@ class ObjectClient(Client):
         mean = 1e3
         std = 1
         self.__D_vector = ObjectClient.rng.normal(loc=mean, scale=std, size=len(client_vector))  # 改
+
+    def divide_subtask(self, D_vector:list, divide_num:int):
+        """
+        将子任务均分到多个线程核心上,并重新计算子任务序列
+        :param D_vector: 子任务序列
+        :param divide_num: 线程数
+        :return: None
+        """
+        transform_matrix = np.ones(shape=(1, divide_num)) / divide_num
+        self.__D_vector = np.matmul(np.array(D_vector)[:, np.newaxis], transform_matrix).sum(axis=0).tolist()
+        # print('we+ %s' % len(self.__D_vector))
 
     def task_distributing(self, alphas=None):
         """

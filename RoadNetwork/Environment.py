@@ -424,7 +424,7 @@ class Map:
         time_MEC_calculating = self.__MECserver_for_obclient.MEC_calc_time(D_MEC=task_MEC_all)
         return time_transmitting_calculating + time_MEC_calculating
 
-    def simulation(self, R_client, v_x, v_y, x_client, y_client):
+    def simulation(self, R_client, v_x, v_y, x_client, y_client, is_calc_latency=False):
         """
         真实场景模拟
         :param R_client: 目标用户本地cpu计算速率
@@ -432,6 +432,7 @@ class Map:
         :param v_y: 目标用户移动速度y分量
         :param x_client: 目标用户位置坐标x分量
         :param y_client: 目标用户位置坐标y分量
+        :param is_calc_latency: 在输入True时用于动态场景时的多任务序列产生
         :return:
         """
         #产生目标client和为其服务的MECserver
@@ -458,6 +459,9 @@ class Map:
             client_vector = self.__CenterMECserver.filter_client_vector(self.__obclient) #client_vector中有重复的需要略去
             print('edge本次有%s个计算任务' % client_vector.__len__())
             self.__obclient.D_vector = client_vector
+        if is_calc_latency:
+            self.__obclient.divide_subtask(D_vector=self.__obclient.D_vector, divide_num=64)
+            # print('we+ %s' % len(self.__obclient.D_vector))
         return len(client_vector) if not obclient_pos_judge else 0 #打印中心center筛选出来的用户数
 
     def time_total_calculating(self, alphas):
@@ -487,7 +491,9 @@ class Map:
         :return: 时延
         """
         #client_vector是由中心服务器筛选出来的用户数量
-        client_vector_ = self.simulation(R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client)
+        is_calc_latency = True if op_function == 'latency' else False
+        client_vector_ = self.simulation(R_client=R_client, v_x=v_x, v_y=v_y, x_client=x_client, y_client=y_client,
+                                         is_calc_latency=is_calc_latency)
         # if client_vector_:
         #     print('中心服务器筛选出来的用户数量为 %s' % client_vector_)
         # alphas = Map.param_tensor(param_range=(0, 1), param_size=[1, self.__client_num - 1])
