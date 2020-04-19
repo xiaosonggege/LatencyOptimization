@@ -186,7 +186,7 @@ class CenterServer(Server):
         position_clients = np.array([client.axis for client in self.client_vector])
         clients_satisfied_index = np.where(np.sqrt(np.sum((position_clients - np.array(obclient.axis)) ** 2, axis=1))
                                      < self.__server_r, 1, 0)
-        clients_satisfied = []
+        # clients_satisfied = []
         clients_satisfied_index = [index for index, val in enumerate(clients_satisfied_index) if val == 1]
         clients_satisfied = [self.client_vector[index] for index in clients_satisfied_index]
         return clients_satisfied

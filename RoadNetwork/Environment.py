@@ -432,7 +432,7 @@ class Map:
         :param v_y: 目标用户移动速度y分量
         :param x_client: 目标用户位置坐标x分量
         :param y_client: 目标用户位置坐标y分量
-        :return: 总时延
+        :return:
         """
         #产生目标client和为其服务的MECserver
         global client_vector
@@ -444,6 +444,7 @@ class Map:
             #目标client获得MECserver服务范围内所有其它client的位置和速度信息
             client_vector = self.__MECserver_for_obclient.client_vector
             #生成计算任务#函数内部需要改
+            print('non-edge本次有%s个计算任务' % len(client_vector))
             self.__obclient.D_vector = client_vector
 
         elif obclient_pos_judge == 0: #目标client处于MECserver边缘处
@@ -455,7 +456,7 @@ class Map:
             # print(client_vector_to_Centerserver[0])
             self.__CenterMECserver.client_vector = client_vector_to_Centerserver
             client_vector = self.__CenterMECserver.filter_client_vector(self.__obclient) #client_vector中有重复的需要略去
-
+            print('edge本次有%s个计算任务' % client_vector.__len__())
             self.__obclient.D_vector = client_vector
         return len(client_vector) if not obclient_pos_judge else 0 #打印中心center筛选出来的用户数
 
