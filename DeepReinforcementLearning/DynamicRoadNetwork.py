@@ -168,7 +168,6 @@ class DynamicEnvironment:
         return client_Q_constraint, mec_Q_constraint, latency
 
     def __enter__(self):
-        # print('zhixingne')
         rng = np.random.RandomState(0)
         r_client_new = rng.normal(loc=1e3, scale=1, size=1) #目标用户初始计算速度均值
         obclient_v_new = (10, 10)
@@ -182,17 +181,14 @@ class DynamicEnvironment:
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
 
-
-
 if __name__ == '__main__':
     with DynamicEnvironment() as d:
         for i in range(100):
-            # print('第%s'%i)
             r_client_new, obclient_v_new, obclient_pos_new, mecservers_R_MEC_new, *outputs1 = d.change_environment()
 
             # outputs2 = d.get_state()
             outputs3 = d.get_alpha()
-            print(outputs3.shape)
+            print(outputs3.shape, outputs1[-1].__len__(), '\n')
             #由于obclient_v_new和obclient_pos_new的维度是二维，所以需flatten
             output4 = d.get_latency(r_client_new=r_client_new, obclient_v_new=obclient_v_new.ravel(),
                                     obclient_pos_new=obclient_pos_new.ravel())
