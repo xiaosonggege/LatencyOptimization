@@ -439,7 +439,7 @@ class Map:
             #目标client获得MECserver服务范围内所有其它client的位置和速度信息
             client_vector = self.__MECserver_for_obclient.client_vector
             #生成计算任务#函数内部需要改
-            print('non-edge本次有%s个计算任务' % len(client_vector))
+            # print('non-edge本次有%s个计算任务' % len(client_vector))
             self.__obclient.D_vector = client_vector
 
         elif obclient_pos_judge == 0: #目标client处于MECserver边缘处
@@ -451,7 +451,7 @@ class Map:
             # print(client_vector_to_Centerserver[0])
             self.__CenterMECserver.client_vector = client_vector_to_Centerserver
             client_vector = self.__CenterMECserver.filter_client_vector(self.__obclient) #client_vector中有重复的需要略去
-            print('edge本次有%s个计算任务' % client_vector.__len__())
+            # print('edge本次有%s个计算任务' % client_vector.__len__())
             self.__obclient.D_vector = client_vector
         if is_calc_latency:
             self.__obclient.divide_subtask(D_vector=self.__obclient.D_vector, divide_num=64)

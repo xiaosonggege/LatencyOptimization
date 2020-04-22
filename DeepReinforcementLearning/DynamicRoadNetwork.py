@@ -103,20 +103,20 @@ class DynamicEnvironment:
         #历史速度
         clients_v = self.map.clients_v
         # print(clients_v.dtype)
-        clients_v_new = np.asarray(next_state_func(clients_v, 21), 'float64')
+        clients_v_new = np.asarray(next_state_func(clients_v, 21), 'float32')
         # print(clients_v_new.shape)
         # print(clients_v_new.dtype)
         #除目标client之外其它client的位置更新
         clients_v_new, clients_pos_new = self._client_status_update(clients_v=clients_v_new, clients_pos=self.map.clients_pos)
         #将本地计算速率在当前值基础上增减, Dx=100
         R_client = self.map.clients_R_client
-        R_client_new = np.asarray(next_state_func(R_client, 100), 'float64')
+        R_client_new = np.asarray(next_state_func(R_client, 100), 'float32')
         #将云端计算速率在当前值基础上增减, Dx=6000
         mecservers_R_MEC = self.map.MECservers_R_MEC
         mecservers_R_MEC_new = np.asarray(next_state_func(mecservers_R_MEC, 6000), 'float64')
         #将云端任务量存储阈值在当前那值基础上增减, Dx=10000
         q_MEC = self.map.Q_MEC
-        q_MEC_new = np.asarray(next_state_func(q_MEC, 10000), 'float64')
+        q_MEC_new = np.asarray(next_state_func(q_MEC, 10000), 'float32')
         #除目标用户外的其它用户属性更新
         self.map.client_vector = (R_client_new, clients_v_new, clients_pos_new[:, 0], clients_pos_new[:, -1])
         # print('client_vector is finished')
@@ -125,19 +125,20 @@ class DynamicEnvironment:
         # print('mecserver_vector is finished')
         #将本地任务量存储阈值在当前值基础上增减, DX=15
         obclient_Q_client = self.map.ob_client.Q_client
-        obclient_Q_client_new = np.asarray(next_state_func(obclient_Q_client, 15), 'float64')
+        obclient_Q_client_new = np.asarray(next_state_func(obclient_Q_client, 15), 'float64')[0]
         #获取目标client的属性，计算其更新属性
         obclient = self.map.ob_client
         r_client = obclient.R_client
-        r_client_new = np.asarray(next_state_func(r_client, 100), 'float64')
+        r_client_new = np.asarray(next_state_func(r_client, 100), 'float32')[0]
+        # print('r', r_client_new, r_client_new[0])
         v = obclient.v
-        v_new = np.asarray(next_state_func(v, 21), 'float64')
+        v_new = np.asarray(next_state_func(v, 21), 'float32')
         axis = obclient.axis
         obclient_v_new, obclient_pos_new = self._client_status_update(clients_v=np.array(v_new)[np.newaxis, :],
                                                                       clients_pos=np.array(axis)[np.newaxis, :])
         #latency
         self.map.ob_client.Q_client = obclient_Q_client_new
-        return r_client_new, obclient_v_new, obclient_pos_new, mecservers_R_MEC_new, \
+        return r_client_new, obclient_v_new, obclient_pos_new, mecservers_R_MEC_new.mean(), \
                obclient.Q_res(), self.map.mecserver_for_obclient.Q_res(), obclient.D_vector
 
     def get_alpha(self):
@@ -179,11 +180,14 @@ class DynamicEnvironment:
         f = np.frompyfunc(lambda x: min(1, max(0, x)), 1, 1)
         s_pre = np.array(
             [v_obclient.ravel()[0], v_obclient.ravel()[-1], pos_obclient.ravel()[0], pos_obclient.ravel()[-1],
-             r_obclient, Q_c/1000, r_mec, Q_m/1000])
+             r_obclient, Q_c/100, r_mec, Q_m/1000])
         alphas_prune = np.asarray(f(self.get_alpha()), 'float64')[:, np.newaxis]
         s_suf = np.hstack((D_vector * alphas_prune, D_vector * (1 - alphas_prune))).ravel()
         # 合并总状态向量
         s = np.hstack((s_pre, s_suf))[np.newaxis, :]
+        # s[0, 4] = s[0, 4][0]
+        # s[0, 5] = s[0, 5][0]
+        # print(s.__class__)
         return s
 
     def reset(self):
@@ -197,11 +201,11 @@ class DynamicEnvironment:
         """
         根据动作更新状态，并输出状态和对应奖励
         :param alphas:
-        :return: s, r
+        :return: s(shape=(1, 136)), r
         """
         #更新状态向量
         s = self.s_calc()
-        # print(s.shape)
+        # print(s)
         r_client_new, obclient_v_new, obclient_pos_new = s[:, 4], s[:, 0:2], s[:, 2:4]
         obclient_v_new = obclient_v_new.ravel().tolist()
         obclient_pos_new = obclient_pos_new.ravel().tolist()
@@ -224,8 +228,15 @@ if __name__ == '__main__':
     with DynamicEnvironment() as d:
         for episode in range(100):
             s0 = d.reset()
+            # print('s0', type(s0)==np.object)
             for step in range(4):
                 a0 = np.random.normal(size=(1, 64))
                 s1, r1 = d.step(alphas=a0)
                 print(s0.shape, a0.shape, r1, s1.shape)
+        # s0 = d.reset()
+        # s1, r1 = d.step(alphas=np.random.normal(size=(1, 64)))
+        # print(s0)
+        # print('\n')
+        # print(s0[:, :8], '\n\n', s0[:, 8:])
+        # print(r1, type(r1))
 

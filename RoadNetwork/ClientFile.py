@@ -230,7 +230,7 @@ class ObjectClient(Client):
             self.alpha_vector = alphas
         self.__D_local = np.sum(self.__D_vector * self.__alpha_vector.ravel())
         if type(self.R_client) == np.ndarray:
-            self.R_client = self.R_client[0][0]
+            self.R_client = self.R_client[0]
         return self.__D_local / self.R_client
 
 
