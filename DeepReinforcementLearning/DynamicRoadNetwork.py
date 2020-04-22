@@ -17,12 +17,12 @@ class DynamicEnvironment:
     vxy_max = 60 #km/h
     Qc_max = 1e2 #
     Rm_max = 1e5 #Hz
-    Qm_max = 1e3 * 1000 #1000为用户数，实际可以考虑修改
+    Qm_max = 1e3 * 500 #1000为用户数，实际可以考虑修改
 
     @staticmethod
     def next_state(loc, scale):
-        next_value = np.random.normal(loc=loc, scale=scale)
-        if next_value > loc:
+        next_value = np.random.normal(loc=loc, scale=scale, size=1)
+        if next_value[0] > loc:
             next_value = 2 * loc - next_value
         return next_value
 
@@ -52,7 +52,7 @@ class DynamicEnvironment:
     def __init__(self):
         self._x_map = 1e5
         self._y_map = 1e5
-        self._client_num = 3000
+        self._client_num = 1000
         self._MECserver_num = 4
         self._R_client_mean = 1e3 #HZ
         self._R_MEC_mean = 1e5 #Hz  #单个计算任务量均值在1000bit
@@ -86,6 +86,8 @@ class DynamicEnvironment:
             h=self._h,
             delta=self._delta
         )
+        # self._iter_time = 0 #迭代计数
+        # self._iteration_time = iteration_time #迭代总次数
 
     def change_environment(self):
         """
@@ -135,17 +137,8 @@ class DynamicEnvironment:
                                                                       clients_pos=np.array(axis)[np.newaxis, :])
         #latency
         self.map.ob_client.Q_client = obclient_Q_client_new
-        return r_client_new, obclient_v_new, obclient_pos_new, mecservers_R_MEC_new, obclient.v[0], obclient.v[-1], \
+        return r_client_new, obclient_v_new, obclient_pos_new, mecservers_R_MEC_new, \
                obclient.Q_res(), self.map.mecserver_for_obclient.Q_res(), obclient.D_vector
-
-    # def get_state(self):
-    #     """
-    #
-    #     :return:
-    #     """
-    #     obclient = self.map.ob_client
-    #     return obclient.v[0], obclient.v[-1], obclient.Q_res(), self.map.mecserver_for_obclient.Q_res(), \
-    #            obclient.D_vector
 
     def get_alpha(self):
         """
@@ -154,41 +147,85 @@ class DynamicEnvironment:
         """
         return self.map.ob_client.alpha_vector
 
-    def get_latency(self, r_client_new, obclient_v_new, obclient_pos_new):
+    def get_latency(self, r_client_new, obclient_v_new, obclient_pos_new, alphas=None):
         """
 
         :return:
         """
-        client_Q_constraint, mec_Q_constraint, latency = self.map.solve_problem(R_client=r_client_new,
+        client_Q_constraint, mec_Q_constraint, t_constraint, latency = self.map.solve_problem(R_client=r_client_new,
                                                                             v_x=obclient_v_new[0],
                                                                             v_y=obclient_v_new[-1],
                                                                             x_client=obclient_pos_new[0],
                                                                             y_client=obclient_pos_new[-1],
                                                                             op_function='latency')
-        return client_Q_constraint, mec_Q_constraint, latency
+        return client_Q_constraint, mec_Q_constraint, t_constraint, latency
 
     def __enter__(self):
         rng = np.random.RandomState(0)
-        r_client_new = rng.normal(loc=1e3, scale=1, size=1) #目标用户初始计算速度均值
+        r_client_new = rng.normal(loc=1e3, scale=1, size=1)[0] #目标用户初始计算速度均值
         obclient_v_new = (10, 10)
         # obclient_pos_new = (97779.54569559613, 88473.93449231013)
         obclient_pos_new = (25000., 25000.)
-        self.client_Q_constraint, self.mec_Q_constraint, self.latency = self.get_latency(r_client_new=r_client_new,
-                                                                                        obclient_v_new=obclient_v_new,
-                                                                                        obclient_pos_new=obclient_pos_new)
+        self.get_latency(r_client_new=r_client_new, obclient_v_new=obclient_v_new, obclient_pos_new=obclient_pos_new)
         return self
+
+    def s_calc(self):
+        """
+        计算状态向量
+        :return:
+        """
+        r_obclient, v_obclient, pos_obclient, r_mec, Q_c, Q_m, D_vector = self.change_environment()
+        # 限制alphas的取值范围在0~1之间的函数
+        f = np.frompyfunc(lambda x: min(1, max(0, x)), 1, 1)
+        s_pre = np.array(
+            [v_obclient.ravel()[0], v_obclient.ravel()[-1], pos_obclient.ravel()[0], pos_obclient.ravel()[-1],
+             r_obclient, Q_c/1000, r_mec, Q_m/1000])
+        alphas_prune = np.asarray(f(self.get_alpha()), 'float64')[:, np.newaxis]
+        s_suf = np.hstack((D_vector * alphas_prune, D_vector * (1 - alphas_prune))).ravel()
+        # 合并总状态向量
+        s = np.hstack((s_pre, s_suf))[np.newaxis, :]
+        return s
+
+    def reset(self):
+        """
+        状态初始化
+        :return:
+        """
+        return self.s_calc()
+
+    def step(self, alphas):
+        """
+        根据动作更新状态，并输出状态和对应奖励
+        :param alphas:
+        :return: s, r
+        """
+        #更新状态向量
+        s = self.s_calc()
+        # print(s.shape)
+        r_client_new, obclient_v_new, obclient_pos_new = s[:, 4], s[:, 0:2], s[:, 2:4]
+        obclient_v_new = obclient_v_new.ravel().tolist()
+        obclient_pos_new = obclient_pos_new.ravel().tolist()
+        self.map.alphas = alphas
+        Q_c_local, Q_m_mec, t_constraint, latency = self.get_latency(r_client_new=r_client_new, obclient_v_new=obclient_v_new,
+                                                       obclient_pos_new=obclient_pos_new)
+        # print('latency %s' %latency)
+        #对应新奖励
+        belta1 = 0.99
+        belta2 = 0.99
+        belta3 = 0.99
+        r = -latency + belta1 * (-Q_c_local)/1e7 + belta2 * (-Q_m_mec)/1e7 + belta3 * (-t_constraint)
+        return s, r
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
 
+
 if __name__ == '__main__':
     with DynamicEnvironment() as d:
-        for i in range(100):
-            r_client_new, obclient_v_new, obclient_pos_new, mecservers_R_MEC_new, *outputs1 = d.change_environment()
+        for episode in range(100):
+            s0 = d.reset()
+            for step in range(4):
+                a0 = np.random.normal(size=(1, 64))
+                s1, r1 = d.step(alphas=a0)
+                print(s0.shape, a0.shape, r1, s1.shape)
 
-            # outputs2 = d.get_state()
-            outputs3 = d.get_alpha()
-            print(outputs3.shape, outputs1[-1].__len__(), '\n')
-            #由于obclient_v_new和obclient_pos_new的维度是二维，所以需flatten
-            output4 = d.get_latency(r_client_new=r_client_new, obclient_v_new=obclient_v_new.ravel(),
-                                    obclient_pos_new=obclient_pos_new.ravel())

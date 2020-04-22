@@ -78,6 +78,9 @@ class Client:
         :return: 用户本地cpu计算速率
         """
         return self.__R_client
+    @R_client.setter
+    def R_client(self, value):
+        self.__R_client = value
 
 
 class ObjectClient(Client):
@@ -204,7 +207,7 @@ class ObjectClient(Client):
         :return: None
         """
         transform_matrix = np.ones(shape=(1, divide_num)) / divide_num
-        self.__D_vector = np.matmul(np.array(D_vector)[:, np.newaxis], transform_matrix).sum(axis=0).tolist()
+        self.__D_vector = np.matmul(np.array(D_vector)[:, np.newaxis], transform_matrix).sum(axis=0)
         # print('we+ %s' % len(self.__D_vector))
 
     def task_distributing(self, alphas=None):
@@ -225,7 +228,9 @@ class ObjectClient(Client):
         """
         if alphas.any() != None:
             self.alpha_vector = alphas
-        self.__D_local = np.sum(self.__D_vector * self.__alpha_vector)
+        self.__D_local = np.sum(self.__D_vector * self.__alpha_vector.ravel())
+        if type(self.R_client) == np.ndarray:
+            self.R_client = self.R_client[0][0]
         return self.__D_local / self.R_client
 
 

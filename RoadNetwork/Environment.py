@@ -324,6 +324,7 @@ class Map:
         #根据目标client的位置选择MECserver
         self.__MECserver_for_obclient = self.__MECserver_vector[0] #初始化
         #找出与obclient距离最小的MECserver(序列)
+        # print(self.__MECservers_pos.shape, np.array([x_client, y_client]).shape)
         distance_of_obclient_and_MECservers = np.sqrt(np.sum((self.__MECservers_pos - np.array([x_client, y_client])) ** 2, axis=1))
         min_distance_of_obc_MEC = np.min(distance_of_obclient_and_MECservers)
         min_distance_of_obc_MEC_index = np.argwhere(distance_of_obclient_and_MECservers==min_distance_of_obc_MEC)
@@ -393,13 +394,6 @@ class Map:
         # t = sympy.symbols('t')
         def f(t):
             """"""
-            # if is_client:
-            #     d = self.__obclient.dis_to_MECserver(point_of_intersection=self.point_of_intersection_calculating(), t=t)
-            # else:
-            #     d = self.__MECserver_for_obclient.dis_to_centerserver(
-            #         x_server=self.__CenterMECserver.axis[0],
-            #         y_server=self.__CenterMECserver.axis[-1]
-            #     )
             d = self.__obclient.dis_to_MECserver(point_of_intersection=self.point_of_intersection_calculating(), t=t)
             R_transmit = self.__B * np.log2(1 + self.__P *
                                                 np.power(d, -self.__delta) * (self.__h ** 2) / (self.__N0 * self.__B))
@@ -476,16 +470,18 @@ class Map:
         time_transmitting_and_MEC_calculating = self.time_transmitting_and_MEC_calculating(alphas=alphas)
         #总时延
         time_total = np.max(np.array([time_local_calculating, time_transmitting_and_MEC_calculating]))
-        # print(type(time_total))
+        # if type(time_total) == np.ndarray:
+        #     time_total = time_total[0]
         return time_total
 
-    def solve_problem(self, R_client, v_x, v_y, x_client, y_client, op_function='text'):
+    def solve_problem(self, R_client, v_x, v_y, x_client, y_client, alphas:np.ndarray=None, op_function='text'):
         """
         :param R_client: 目标用户本地cpu计算速率
         :param v_x: 目标用户移动速度x分量
         :param v_y: 目标用户移动速度y分量
         :param x_client: 目标用户位置坐标x分量
         :param y_client: 目标用户位置坐标y分量
+        :param alphas: 卸载比例系数向量
         :param op_function: str, 优化方法名称，默认为'text'为输出0，'latency'为直接输出时延，'method'为根据method名进行优化
         :param T_TH: 对总时延的约束
         :return: 时延
@@ -497,7 +493,9 @@ class Map:
         # if client_vector_:
         #     print('中心服务器筛选出来的用户数量为 %s' % client_vector_)
         # alphas = Map.param_tensor(param_range=(0, 1), param_size=[1, self.__client_num - 1])
-        alphas = Map.param_tensor(param_range=(0, 1), param_size=[1, len(self.__obclient.D_vector)])
+        if not hasattr(self, 'alphas'): #初始时类属性中没有alphas时需要在此处初始化
+            # print('第一次初始化')
+            self.alphas = Map.param_tensor(param_range=(0, 1), param_size=[1, len(self.__obclient.D_vector)])
         def fun(alphas):
             """
             优化所需函数
@@ -511,28 +509,27 @@ class Map:
         # 约束条件 分为eq 和ineq
         # eq表示 函数结果等于0 ； ineq 表示 表达式大于等于0
         cons = [{'type': 'ineq', 'fun':
-            lambda alphas: self.__MECserver_for_obclient.Q_res() -  self.__obclient.task_distributing(alphas=alphas)},
+            lambda alphas: self.__MECserver_for_obclient.Q_res() -  self.__obclient.task_distributing(alphas=self.alphas)},
                 {'type': 'ineq', 'fun':
-            lambda alphas: self.__obclient.Q_res() + self.__obclient.task_distributing(alphas=alphas) - np.sum(self.__obclient.D_vector)},
+            lambda alphas: self.__obclient.Q_res() + self.__obclient.task_distributing(alphas=self.alphas) - np.sum(self.__obclient.D_vector)},
                 {'type': 'ineq', 'fun':
-            lambda alphas: self.__t_stay - self.time_transmitting_and_MEC_calculating(alphas=alphas)},
-                # {'type': 'ineq', 'fun': lambda alphas: self.__T_epsilon - fun(alphas)},
-                {'type': 'ineq', 'fun': lambda alphas: alphas.T},
-                {'type': 'ineq', 'fun': lambda alphas: - alphas.T + 1}]
+            lambda alphas: self.__t_stay - self.time_transmitting_and_MEC_calculating(alphas=self.alphas)},
+                {'type': 'ineq', 'fun': lambda alphas: self.alphas.T},
+                {'type': 'ineq', 'fun': lambda alphas: - self.alphas.T + 1}]
 
         # print(len(cons))
         if op_function == 'text':
             return 0
         elif op_function == 'latency':
-            client_constraint = self.__MECserver_for_obclient.Q_res() - self.__obclient.task_distributing(alphas=alphas)
-            mec_constraint = self.__obclient.Q_res() + self.__obclient.task_distributing(alphas=alphas) - np.sum(
+            client_constraint = self.__MECserver_for_obclient.Q_res() - self.__obclient.task_distributing(alphas=self.alphas)
+            mec_constraint = self.__obclient.Q_res() + self.__obclient.task_distributing(alphas=self.alphas) - np.sum(
                 self.__obclient.D_vector)
-            res = fun(alphas=alphas)
-            return client_constraint, mec_constraint, res
+            t_constraint = self.__t_stay - self.time_transmitting_and_MEC_calculating(alphas=self.alphas)
+            res = fun(alphas=self.alphas)
+            return client_constraint, mec_constraint, t_constraint, res
         else:
-            res = minimize(fun, alphas, method=op_function, constraints=cons, options={'maxiter':8}) #需要优化时打开
+            res = minimize(fun, self.alphas, method=op_function, constraints=cons, options={'maxiter':8}) #需要优化时打开
             return res
-
 
 
 if __name__ == '__main__':
