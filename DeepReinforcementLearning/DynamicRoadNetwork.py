@@ -217,8 +217,11 @@ class DynamicEnvironment:
         belta1 = 0.99
         belta2 = 0.99
         belta3 = 0.99
-        r = -latency + belta1 * (-Q_c_local)/1e7 + belta2 * (-Q_m_mec)/1e7 + belta3 * (-t_constraint)
-        return s, r
+        limit_fun = lambda x: -2. if x < 0. else 0
+        # r = latency
+        r = -float(latency) + belta1 * limit_fun(min(0., float(Q_c_local))) + belta2 * \
+            limit_fun(min(0., float(Q_m_mec))) + belta3 * limit_fun(min(0., float(t_constraint)))
+        return s, float(r), float(latency)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
@@ -231,7 +234,7 @@ if __name__ == '__main__':
             # print('s0', type(s0)==np.object)
             for step in range(4):
                 a0 = np.random.normal(size=(1, 64))
-                s1, r1 = d.step(alphas=a0)
+                s1, r1, latency = d.step(alphas=a0)
                 print(s0.shape, a0.shape, r1, s1.shape)
         # s0 = d.reset()
         # s1, r1 = d.step(alphas=np.random.normal(size=(1, 64)))
