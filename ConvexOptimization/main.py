@@ -70,27 +70,27 @@ def main_function(vxy_client_range=(-60, 60), T_epsilon=8*60, client_num=1000, B
         R_client=Map.param_tensor_gaussian(mean=R_client_mean, var=1, param_size=1),
         v_x=10,
         v_y=10,
-        x_client=97779.54569559613, #Map.rng.uniform(low=0, high=x_map),
-        y_client=88473.93449231013, #Map.rng.uniform(low=0, high=y_map),
-        op_function='text'
+        x_client=25000., #97779.54569559613, #Map.rng.uniform(low=0, high=x_map),
+        y_client=25000., #88473.93449231013, #Map.rng.uniform(low=0, high=y_map),
+        op_function='slsqp'
     )
 
-    # print(res)
-    # print('最优时延结果为: %s' % res.fun)
-    # print('取得最优时延时优化参数向量为:\n', res.x)
-    # print('client={0}时迭代次数为: {1}'.format(client_num, res.nit))
-    # print('迭代成功？ %s' % res.success)
+    print(res)
+    print('最优时延结果为: %s' % res.fun)
+    print('取得最优时延时优化参数向量为:\n', res.x)
+    print('client={0}时迭代次数为: {1}'.format(client_num, res.nit))
+    print('迭代成功？ %s' % res.success)
 
     #画图专区
-    print(map.clients_pos)
+    # print(map.clients_pos)
     # print(type(map.clients_pos), map.clients_pos.shape)
     # print(map.MECserver_for_obclient)
     # print(map.Obclient)
-    print(map.MECserver_vector)
+    # print(map.MECserver_vector)
     # plotfun(map.clients_pos, map.Obclient, *map.MECserver_for_obclient)
-    plotfun(map.clients_pos, map.Obclient, *map.MECserver_vector)
-    return 0
-    # return res.fun
+    # plotfun(map.clients_pos, map.Obclient, *map.MECserver_vector)
+    # return 0
+    return res.fun
 
 
 if __name__ == '__main__':
@@ -98,9 +98,9 @@ if __name__ == '__main__':
     T_epsilon = None
     client_num = 200
     B = None
-    # print('正在执行优化')
-    # main_function()
-    # print('执行完成')
+    print('正在执行优化')
+    main_function()
+    print('执行完成')
 
 #########################绘图####################################
     # for T_epsilon in [e * 60 for e in range(1, 11)]:
@@ -195,7 +195,7 @@ if __name__ == '__main__':
         ax.set_ylabel('y/m')
         ax.legend(loc='upper left')
         fig.show()
-    main_function(plotfun=plotfun1)
+    # main_function(plotfun=plotfun1)
 
     def plotfun2():
         T_e = [e * 60 for e in range(1, 11)]

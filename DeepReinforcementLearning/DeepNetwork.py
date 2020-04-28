@@ -99,12 +99,12 @@ class Agent:
         self.actor_target = Actor(s1_dim=self._s1_dim, s2_dim=self._s2_dim, a_dim=self._a_dim)
         self.critic_eval = Critic(s1_dim=self._s1_dim, s2_dim=self._s2_dim, a_dim=self._a_dim)
         self.critic_target = Critic(s1_dim=self._s1_dim, s2_dim=self._s2_dim, a_dim=self._a_dim)
-        self.actor_optim = torch.optim.Adam(params=self.actor_eval.parameters(), lr=1e-2)
-        self.critic_optim = torch.optim.Adam(params=self.critic_eval.parameters(), lr=1e-2)
+        self.actor_optim = torch.optim.Adam(params=self.actor_eval.parameters(), lr=1e-3)
+        self.critic_optim = torch.optim.Adam(params=self.critic_eval.parameters(), lr=1e-3)
         self._buffer = np.array([]) #经验回放池
-        self._memory_capacity = 1000 #经验池大小
+        self._memory_capacity = 2000 #1000 #经验池大小
         self._data_count = 0 #产生的数据总计数
-        self._batch_size = 500 #从经验池中采样数量
+        self._batch_size = 1000 #500 #从经验池中采样数量
         self._gamma = 0.99 #未来奖励的衰减系数
 
         #用actor估计的网络参数初始化actor目标的网络参数
@@ -148,10 +148,10 @@ class Agent:
         samples = np.random.choice(a=self._memory_capacity, size=self._batch_size)
         batch_data = self._buffer[samples, :]
         s_index_limit = self._s1_dim+self._s2_dim
-        s = torch.tensor(data=batch_data[:, :s_index_limit], dtype=torch.float64)
-        a = torch.tensor(data=batch_data[:, s_index_limit:s_index_limit+self._a_dim], dtype=torch.float64)
-        r = torch.tensor(data=batch_data[:, s_index_limit+self._a_dim:s_index_limit+self._a_dim+1], dtype=torch.float64)
-        s_ = torch.tensor(data=batch_data[:, -s_index_limit:], dtype=torch.float64)
+        s = torch.tensor(data=batch_data[:, :s_index_limit], dtype=torch.float32)
+        a = torch.tensor(data=batch_data[:, s_index_limit:s_index_limit+self._a_dim], dtype=torch.float32)
+        r = torch.tensor(data=batch_data[:, s_index_limit+self._a_dim:s_index_limit+self._a_dim+1], dtype=torch.float32)
+        s_ = torch.tensor(data=batch_data[:, -s_index_limit:], dtype=torch.float32)
 
         def actor_learn():
             """

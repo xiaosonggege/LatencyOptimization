@@ -16,9 +16,11 @@ import torch
 def trainingAndOptimization():
     agent = Agent()
     with DynamicEnvironment() as d:
-        for episode in range(200):
+        for episode in range(100):
             s0 = d.reset()
             s0 = np.asarray(s0, 'float32')
+            #添加slsqp对比实验位置
+            # latency_slsqp = 0
             # print(type(s0[0][0]), s0.shape)
             episode_reward = 0 #总奖励
             latency_total = 0 #时延输出
@@ -31,8 +33,13 @@ def trainingAndOptimization():
                 episode_reward += r1
                 latency_total += latency
                 s0 = s1
+                # 添加slsqp对比实验位置
+                # r_client_new, obclient_v_new, obclient_pos_new = s0[:, 4], s0[:, 0:2], s0[:, 2:4]
+                # latency_slsqp += d.get_latency(r_client_new=r_client_new, obclient_v_new=obclient_v_new.ravel().tolist(),
+                #                                obclient_pos_new=obclient_pos_new.ravel().tolist(),
+                #                                op_function='slsqp', alphas=a0)
                 agent.learn()
-            print('episode {0} reward: {1:.4}, latency: {2:.4}'.format(episode, episode_reward, latency_total/4))
-
+            print('episode {0} reward: {1:.4}, latency: {2:.4}'.format(episode, episode_reward/4, latency_total/4))
+            # print('episode {0} slsqp latency: {1:.4}'.format(episode, latency_slsqp/4))
 if __name__ == '__main__':
     trainingAndOptimization()

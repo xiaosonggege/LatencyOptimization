@@ -496,6 +496,9 @@ class Map:
         if not hasattr(self, 'alphas'): #初始时类属性中没有alphas时需要在此处初始化
             # print('第一次初始化')
             self.alphas = Map.param_tensor(param_range=(0, 1), param_size=[1, len(self.__obclient.D_vector)])
+        elif alphas is not None:
+            self.alphas = alphas
+
         def fun(alphas):
             """
             优化所需函数
@@ -504,18 +507,6 @@ class Map:
             """
             time_all = self.time_total_calculating(alphas=alphas)
             return time_all
-
-        #约束项函数
-        # 约束条件 分为eq 和ineq
-        # eq表示 函数结果等于0 ； ineq 表示 表达式大于等于0
-        cons = [{'type': 'ineq', 'fun':
-            lambda alphas: self.__MECserver_for_obclient.Q_res() -  self.__obclient.task_distributing(alphas=self.alphas)},
-                {'type': 'ineq', 'fun':
-            lambda alphas: self.__obclient.Q_res() + self.__obclient.task_distributing(alphas=self.alphas) - np.sum(self.__obclient.D_vector)},
-                {'type': 'ineq', 'fun':
-            lambda alphas: self.__t_stay - self.time_transmitting_and_MEC_calculating(alphas=self.alphas)},
-                {'type': 'ineq', 'fun': lambda alphas: self.alphas.T},
-                {'type': 'ineq', 'fun': lambda alphas: - self.alphas.T + 1}]
 
         # print(len(cons))
         if op_function == 'text':
@@ -528,7 +519,21 @@ class Map:
             res = fun(alphas=self.alphas)
             return client_constraint, mec_constraint, t_constraint, res
         else:
-            res = minimize(fun, self.alphas, method=op_function, constraints=cons, options={'maxiter':8}) #需要优化时打开
+            # 约束项函数
+            # 约束条件 分为eq 和ineq
+            # eq表示 函数结果等于0 ； ineq 表示 表达式大于等于0
+            cons = [{'type': 'ineq', 'fun':
+                lambda alphas: self.__MECserver_for_obclient.Q_res() - self.__obclient.task_distributing(
+                    alphas=self.alphas)},
+                    {'type': 'ineq', 'fun':
+                        lambda alphas: self.__obclient.Q_res() + self.__obclient.task_distributing(
+                            alphas=self.alphas) - np.sum(self.__obclient.D_vector)},
+                    {'type': 'ineq', 'fun':
+                        lambda alphas: self.__t_stay - self.time_transmitting_and_MEC_calculating(alphas=self.alphas)},
+                    {'type': 'ineq', 'fun': lambda alphas: self.alphas.T},
+                    {'type': 'ineq', 'fun': lambda alphas: - self.alphas.T + 1}]
+
+            res = minimize(fun, self.alphas, method=op_function, constraints=cons, options={'maxiter':100}) #需要优化时打开
             return res
 
 

@@ -52,7 +52,7 @@ class DynamicEnvironment:
     def __init__(self):
         self._x_map = 1e5
         self._y_map = 1e5
-        self._client_num = 1000
+        self._client_num = 200
         self._MECserver_num = 4
         self._R_client_mean = 1e3 #HZ
         self._R_MEC_mean = 1e5 #Hz  #单个计算任务量均值在1000bit
@@ -148,7 +148,7 @@ class DynamicEnvironment:
         """
         return self.map.ob_client.alpha_vector
 
-    def get_latency(self, r_client_new, obclient_v_new, obclient_pos_new, alphas=None):
+    def get_latency(self, r_client_new, obclient_v_new, obclient_pos_new, alphas:np.ndarray=None, op_function='latency'):
         """
 
         :return:
@@ -158,7 +158,8 @@ class DynamicEnvironment:
                                                                             v_y=obclient_v_new[-1],
                                                                             x_client=obclient_pos_new[0],
                                                                             y_client=obclient_pos_new[-1],
-                                                                            op_function='latency')
+                                                                            op_function=op_function,
+                                                                            alphas=alphas)
         return client_Q_constraint, mec_Q_constraint, t_constraint, latency
 
     def __enter__(self):
@@ -218,7 +219,7 @@ class DynamicEnvironment:
         belta2 = 0.99
         belta3 = 0.99
         limit_fun = lambda x: -2. if x < 0. else 0
-        # r = latency
+        # r = -float(latency)
         r = -float(latency) + belta1 * limit_fun(min(0., float(Q_c_local))) + belta2 * \
             limit_fun(min(0., float(Q_m_mec))) + belta3 * limit_fun(min(0., float(t_constraint)))
         return s, float(r), float(latency)
