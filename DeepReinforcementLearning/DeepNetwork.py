@@ -99,12 +99,12 @@ class Agent:
         self.actor_target = Actor(s1_dim=self._s1_dim, s2_dim=self._s2_dim, a_dim=self._a_dim)
         self.critic_eval = Critic(s1_dim=self._s1_dim, s2_dim=self._s2_dim, a_dim=self._a_dim)
         self.critic_target = Critic(s1_dim=self._s1_dim, s2_dim=self._s2_dim, a_dim=self._a_dim)
-        self.actor_optim = torch.optim.Adam(params=self.actor_eval.parameters(), lr=1e-3)
-        self.critic_optim = torch.optim.Adam(params=self.critic_eval.parameters(), lr=1e-3)
+        self.actor_optim = torch.optim.Adam(params=self.actor_eval.parameters(), lr=1e-3) #1e-3最好
+        self.critic_optim = torch.optim.Adam(params=self.critic_eval.parameters(), lr=1e-3) #1e-3最好
         self._buffer = np.array([]) #经验回放池
         self._memory_capacity = 2000 #1000 #经验池大小
         self._data_count = 0 #产生的数据总计数
-        self._batch_size = 1000 #500 #从经验池中采样数量
+        self._batch_size = 1000 #1000最好 #从经验池中采样数量
         self._gamma = 0.99 #未来奖励的衰减系数
 
         #用actor估计的网络参数初始化actor目标的网络参数

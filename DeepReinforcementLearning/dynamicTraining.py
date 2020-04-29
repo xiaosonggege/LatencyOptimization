@@ -39,7 +39,10 @@ def trainingAndOptimization():
                 #                                obclient_pos_new=obclient_pos_new.ravel().tolist(),
                 #                                op_function='slsqp', alphas=a0)
                 agent.learn()
-            print('episode {0} reward: {1:.4}, latency: {2:.4}'.format(episode, episode_reward/4, latency_total/4))
+            data_str = 'episode {0} reward: {1:.4}, latency: {2:.4}'.format(episode, episode_reward/4, latency_total/4)
+            with open(file='/Users/songyunlong/Desktop/ddpg200-tanh.txt', mode='a') as f:
+                f.write(data_str+'\n')
+            print(data_str)
             # print('episode {0} slsqp latency: {1:.4}'.format(episode, latency_slsqp/4))
 if __name__ == '__main__':
     trainingAndOptimization()
