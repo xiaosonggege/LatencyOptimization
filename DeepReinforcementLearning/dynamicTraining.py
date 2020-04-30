@@ -24,7 +24,7 @@ def trainingAndOptimization():
             # print(type(s0[0][0]), s0.shape)
             episode_reward = 0 #总奖励
             latency_total = 0 #时延输出
-            for step in range(4):
+            for step in range(100):
                 a0 = agent.act(s=s0)
                 s1, r1, latency = d.step(alphas=a0)
                 # print('info of reward', r1, type(r1), type(s1), type(s1[0]))
@@ -39,7 +39,7 @@ def trainingAndOptimization():
                 #                                obclient_pos_new=obclient_pos_new.ravel().tolist(),
                 #                                op_function='slsqp', alphas=a0)
                 agent.learn()
-            data_str = 'episode {0} reward: {1:.4}, latency: {2:.4}'.format(episode, episode_reward/4, latency_total/4)
+            data_str = 'episode {0} reward: {1:.4}, latency: {2:.4}'.format(episode, episode_reward/100, latency_total/100)
             with open(file='/Users/songyunlong/Desktop/ddpg200-tanh.txt', mode='a') as f:
                 f.write(data_str+'\n')
             print(data_str)
