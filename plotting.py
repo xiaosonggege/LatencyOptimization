@@ -12,7 +12,10 @@ import numpy as np
 import pandas as pd
 import re
 from matplotlib import pyplot as plt
-
+from scipy.interpolate import interp1d
+#插值
+spline = lambda x, y: interp1d(x, y, kind='quadratic')
+x_spline_new = np.linspace(1, 100, 1000)
 def plot1():
     """
     ddpg最好结果和slsqp对比
@@ -31,8 +34,8 @@ def plot1():
         slsqp = np.array([float(i) for i in line_str.split(' ')])
     fig, ax = plt.subplots()
     x = [i for i in range(1, 101)]
-    ax.plot(x, ddpg[:, -1], c='r', label='ddpg')
-    ax.plot(x, slsqp, c='b', label='slsqp')
+    ax.plot(x_spline_new, spline(x, ddpg[:, -1])(x_spline_new), c='r', label='ddpg')
+    ax.plot(x_spline_new, spline(x, slsqp)(x_spline_new), c='b', label='slsqp')
     ax.legend(loc='upper right')
     ax.set_xlabel('x/episode')
     ax.set_ylabel('y/average latency')
@@ -42,7 +45,7 @@ def plot1():
 
     fig, ax = plt.subplots()
     x = [i for i in range(1, 101)]
-    ax.plot(x, ddpg[:, 0]*100, c='r', label='reward')
+    ax.plot(x_spline_new, spline(x, ddpg[:, 0]*100)(x_spline_new), c='r', label='reward')
     ax.legend()
     ax.set_xlabel('x/eposide')
     ax.set_ylabel('y/reward')
@@ -89,10 +92,10 @@ def plot2(regex = re.compile(pattern='-*\d+\.\d+')):
 
     #reward
     fig, ax = plt.subplots()
-    x = range(100)
-    ax.plot(x, ddpg_lr1[:, 0]*100, c='r', label='lr=1e-3')
-    ax.plot(x, ddpg_lr2[:, 0]*100, c='g', label='lr=1e-2')
-    ax.plot(x, ddpg_lr3[:, 0]*100, c='b', label='lr=5e-3')
+    x = range(1, 101)
+    ax.plot(x_spline_new, spline(x, ddpg_lr1[:, 0]*100)(x_spline_new), c='r', label='lr=1e-3')
+    ax.plot(x_spline_new, spline(x, ddpg_lr2[:, 0]*100)(x_spline_new), c='g', label='lr=1e-2')
+    ax.plot(x_spline_new, spline(x, ddpg_lr3[:, 0]*100)(x_spline_new), c='b', label='lr=5e-3')
     ax.legend()
     ax.set_xlabel('x/eposide')
     ax.set_ylabel('y/reward')
@@ -102,10 +105,10 @@ def plot2(regex = re.compile(pattern='-*\d+\.\d+')):
 
     #latency
     fig, ax = plt.subplots()
-    x = range(100)
-    ax.plot(x, ddpg_lr1[:, -1], c='r', label='lr=1e-3')
-    ax.plot(x, ddpg_lr2[:, -1], c='g', label='lr=1e-2')
-    ax.plot(x, ddpg_lr3[:, -1], c='b', label='lr=5e-3')
+    x = range(1, 101)
+    ax.plot(x_spline_new, spline(x, ddpg_lr1[:, -1])(x_spline_new), c='r', label='lr=1e-3')
+    ax.plot(x_spline_new, spline(x, ddpg_lr2[:, -1])(x_spline_new), c='g', label='lr=1e-2')
+    ax.plot(x_spline_new, spline(x, ddpg_lr3[:, -1])(x_spline_new), c='b', label='lr=5e-3')
     ax.legend()
     ax.set_xlabel('x/eposide')
     ax.set_ylabel('y/average latency')
@@ -152,10 +155,10 @@ def plot3(regex = re.compile(pattern='-*\d+\.\d+')):
 
     # reward
     fig, ax = plt.subplots()
-    x = range(100)
-    ax.plot(x, ddpg_batch1[:, 0] * 100, c='r', label='batch size=1000')
-    ax.plot(x, ddpg_batch2[:, 0] * 100, c='g', label='batch size=500')
-    ax.plot(x, ddpg_batch3[:, 0] * 100, c='b', label='batch size=700')
+    x = range(1, 101)
+    ax.plot(x_spline_new, spline(x, ddpg_batch1[:, 0] * 100)(x_spline_new), c='r', label='batch size=1000')
+    ax.plot(x_spline_new, spline(x, ddpg_batch2[:, 0] * 100)(x_spline_new), c='g', label='batch size=500')
+    ax.plot(x_spline_new, spline(x, ddpg_batch3[:, 0] * 100)(x_spline_new), c='b', label='batch size=700')
     ax.legend()
     ax.set_xlabel('x/eposide')
     ax.set_ylabel('y/reward')
@@ -165,10 +168,10 @@ def plot3(regex = re.compile(pattern='-*\d+\.\d+')):
 
     # latency
     fig, ax = plt.subplots()
-    x = range(100)
-    ax.plot(x, ddpg_batch1[:, -1], c='r', label='batch size=1000')
-    ax.plot(x, ddpg_batch2[:, -1], c='g', label='batch size=500')
-    ax.plot(x, ddpg_batch3[:, -1], c='b', label='batch size=700')
+    x = range(1, 101)
+    ax.plot(x_spline_new, spline(x, ddpg_batch1[:, -1])(x_spline_new), c='r', label='batch size=1000')
+    ax.plot(x_spline_new, spline(x, ddpg_batch2[:, -1])(x_spline_new), c='g', label='batch size=500')
+    ax.plot(x_spline_new, spline(x, ddpg_batch3[:, -1])(x_spline_new), c='b', label='batch size=700')
     ax.legend()
     ax.set_xlabel('x/eposide')
     ax.set_ylabel('y/average latency')
@@ -216,10 +219,10 @@ def plot4(regex = re.compile(pattern='-*\d+\.\d+')):
 
     # reward
     fig, ax = plt.subplots()
-    x = range(100)
-    ax.plot(x, ddpg_ut[:, 0] * 100, c='r', label='ε(x)')
-    ax.plot(x, ddpg_sigmode[:, 0] * 100, c='g', label='sigmode(x)')
-    ax.plot(x, ddpg_tanh[:, 0] * 100, c='b', label='tanh(x)')
+    x = range(1, 101)
+    ax.plot(x_spline_new, spline(x, ddpg_ut[:, 0] * 100)(x_spline_new), c='r', label='ε(x)')
+    ax.plot(x_spline_new, spline(x, ddpg_sigmode[:, 0] * 100)(x_spline_new), c='g', label='sigmode(x)')
+    ax.plot(x_spline_new, spline(x, ddpg_tanh[:, 0] * 100)(x_spline_new), c='b', label='tanh(x)')
     ax.legend()
     ax.set_xlabel('x/eposide')
     ax.set_ylabel('y/reward')
@@ -229,10 +232,10 @@ def plot4(regex = re.compile(pattern='-*\d+\.\d+')):
 
     # latency
     fig, ax = plt.subplots()
-    x = range(100)
-    ax.plot(x, ddpg_ut[:, -1], c='r', label='ε(x)')
-    ax.plot(x, ddpg_sigmode[:, -1], c='g', label='sigmode(x)')
-    ax.plot(x, ddpg_tanh[:, -1], c='b', label='tanh(x)')
+    x = range(1, 101)
+    ax.plot(x_spline_new, spline(x, ddpg_ut[:, -1])(x_spline_new), c='r', label='ε(x)')
+    ax.plot(x_spline_new, spline(x, ddpg_sigmode[:, -1])(x_spline_new), c='g', label='sigmode(x)')
+    ax.plot(x_spline_new, spline(x, ddpg_tanh[:, -1])(x_spline_new), c='b', label='tanh(x)')
     ax.legend()
     ax.set_xlabel('x/eposide')
     ax.set_ylabel('y/average latency')
@@ -243,5 +246,5 @@ def plot4(regex = re.compile(pattern='-*\d+\.\d+')):
 if __name__ == '__main__':
     # plot1()
     # plot2()
-    plot3()
+    # plot3()
     plot4()
