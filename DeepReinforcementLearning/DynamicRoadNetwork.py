@@ -221,16 +221,16 @@ class DynamicEnvironment:
         limit_fun = lambda x: -2. if x < 0. else 0
         # r = -float(latency)
         #最值限制
-        # r = -float(latency) + belta1 * limit_fun(min(0., float(Q_c_local))) + belta2 * \
-        #     limit_fun(min(0., float(Q_m_mec))) + belta3 * limit_fun(min(0., float(t_constraint)))
+        r = -float(latency) + belta1 * limit_fun(min(0., float(Q_c_local))) + belta2 * \
+            limit_fun(min(0., float(Q_m_mec))) + belta3 * limit_fun(min(0., float(t_constraint)))
         #sigmoid
         sigmoid = lambda x: 1 / (1 + np.exp(-x)) - 1
         # r = -float(latency) + belta1 * sigmoid(min(0., float(Q_c_local))) + belta2 * \
         #     sigmoid(min(0., float(Q_m_mec))) + belta3 * sigmoid(min(0., float(t_constraint)))
         #tanh
         tanh = lambda x: (np.exp(float(x)) - np.exp(-float(x))) / (np.exp(float(x)) + np.exp(-float(x))+3)
-        r = -float(latency) + belta1 * tanh(min(0., float(Q_c_local))) + belta2 * \
-            tanh(min(0., float(Q_m_mec))) + belta3 * tanh(min(0., float(t_constraint)))
+        # r = -float(latency) + belta1 * tanh(min(0., float(Q_c_local))) + belta2 * \
+        #     tanh(min(0., float(Q_m_mec))) + belta3 * tanh(min(0., float(t_constraint)))
 
         return s, float(r), float(latency)
 

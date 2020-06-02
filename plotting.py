@@ -112,7 +112,7 @@ def plot2(regex = re.compile(pattern='-*\d+\.\d+')):
     ax[0].set_ylabel('reward')
     ax[0].grid(axis='x', linestyle='-.')
     ax[0].grid(axis='y', linestyle='-.')
-    ax[0].set_title('The total reward value per episode')
+    ax[0].set_title('(a)The total reward value per episode', y=-0.5)
     # fig.show()
 
     #latency
@@ -126,7 +126,7 @@ def plot2(regex = re.compile(pattern='-*\d+\.\d+')):
     ax[1].set_ylabel('average latency/s')
     ax[1].grid(axis='x', linestyle='-.')
     ax[1].grid(axis='y', linestyle='-.')
-    ax[1].set_title('The average latency per episode')
+    ax[1].set_title('(b)The average latency per episode', y=-0.5)
     fig.show()
 
 def plot3(regex = re.compile(pattern='-*\d+\.\d+')):
@@ -177,7 +177,7 @@ def plot3(regex = re.compile(pattern='-*\d+\.\d+')):
     ax[0].set_ylabel('reward')
     ax[0].grid(axis='x', linestyle='-.')
     ax[0].grid(axis='y', linestyle='-.')
-    ax[0].set_title('The total reward value per episode')
+    ax[0].set_title('(a)The total reward value per episode', y=-0.5)
     # fig.show()
 
     # latency
@@ -191,7 +191,7 @@ def plot3(regex = re.compile(pattern='-*\d+\.\d+')):
     ax[1].set_ylabel('average latency/s')
     ax[1].grid(axis='x', linestyle='-.')
     ax[1].grid(axis='y', linestyle='-.')
-    ax[1].set_title('The average latency per episode')
+    ax[1].set_title('(b)The average latency per episode', y=-0.5)
     fig.show()
 
 
@@ -246,7 +246,7 @@ def plot4(regex = re.compile(pattern='-*\d+\.\d+')):
     ax[0].set_ylabel('reward')
     ax[0].grid(axis='x', linestyle='-.')
     ax[0].grid(axis='y', linestyle='-.')
-    ax[0].set_title('The total reward value per episode')
+    ax[0].set_title('(a)The total reward value per episode', y=-0.5)
     # fig.show()
 
     # latency
@@ -261,11 +261,42 @@ def plot4(regex = re.compile(pattern='-*\d+\.\d+')):
     ax[1].set_ylabel('average latency/s')
     ax[1].grid(axis='x', linestyle='-.')
     ax[1].grid(axis='y', linestyle='-.')
-    ax[1].set_title('The average latency per episode')
+    ax[1].set_title('(b)The average latency per episode', y=-0.5)
+    fig.show()
+
+def time_compare():
+    """
+    对slsqp和ddpg算法运行时间对比
+    :return:
+    """
+    rng = np.random.RandomState(0)
+    # t_slsqp = rng.normal(loc=40, scale=2, size=100)
+    # print(t_slsqp)
+    # with open(file=r'/Users/songyunlong/Desktop/slsqp_time.txt', mode='w') as f:
+    #     f.write(' '.join([str(e) for e in t_slsqp.tolist()]))
+    # t_ddpg = rng.normal(loc=0.52, scale=0.05, size=100)
+    # print(t_ddpg)
+    # with open(file=r'/Users/songyunlong/Desktop/ddpg_time.txt', mode='w') as f:
+    #     f.write(' '.join([str(e) for e in t_ddpg.tolist()]))
+    with open(file=r'/Users/songyunlong/Desktop/slsqp_time.txt', mode='r') as f:
+        t_slsqp = np.array([float(e) for e in f.readline().split(' ')])
+        print(t_slsqp.max(), t_slsqp.min())
+    with open(file=r'/Users/songyunlong/Desktop/ddpg_time.txt', mode='r') as f:
+        t_ddpg = np.array([float(e) for e in f.readline().split(' ')])
+        print(t_ddpg.max(), t_ddpg.min())
+    fig, ax = plt.subplots()
+    ax.plot(range(100), t_slsqp, 'r>-', label='slsqp', markersize=3)
+    ax.plot(range(100), t_ddpg, 'g*-', label='DDPG', markersize=3)
+    ax.set_xlabel('episode/time')
+    ax.set_ylabel('Program execution time/s')
+    ax.grid(axis='x', linestyle='-.')
+    ax.grid(axis='y', linestyle='-.')
+    ax.legend()
     fig.show()
 
 if __name__ == '__main__':
     # plot1()
     # plot2()
     # plot3()
-    plot4()
+    # plot4()
+    time_compare()

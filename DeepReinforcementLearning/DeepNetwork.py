@@ -88,7 +88,7 @@ class Critic(torch.nn.Module):
         anet = self._anet(a) #shape=(batch_size, 128)
         q = self._combinelinear(torch.cat(tensors=[s1net, s2net, anet], dim=1)) #shape=(batch_size, 1)
         q = torch.tanh(q)
-        return q #原先是a
+        return a #原先是a
 
 class Agent:
     def __init__(self):

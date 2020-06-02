@@ -12,6 +12,7 @@ from DeepReinforcementLearning.DynamicRoadNetwork import DynamicEnvironment
 from DeepReinforcementLearning.DeepNetwork import Agent
 import numpy as np
 import torch
+import time
 
 def trainingAndOptimization():
     agent = Agent()
@@ -24,6 +25,8 @@ def trainingAndOptimization():
             # print(type(s0[0][0]), s0.shape)
             episode_reward = 0 #总奖励
             latency_total = 0 #时延输出
+            #测试时间
+            start = time.time()
             for step in range(100):
                 a0 = agent.act(s=s0)
                 s1, r1, latency = d.step(alphas=a0)
@@ -39,9 +42,11 @@ def trainingAndOptimization():
                 #                                obclient_pos_new=obclient_pos_new.ravel().tolist(),
                 #                                op_function='slsqp', alphas=a0)
                 agent.learn()
+            end = time.time()
+            print('100轮时间为%s' % (end-start))
             data_str = 'episode {0} reward: {1:.4}, latency: {2:.4}'.format(episode, episode_reward/100, latency_total/100)
-            with open(file='/Users/songyunlong/Desktop/ddpg200-tanh.txt', mode='a') as f:
-                f.write(data_str+'\n')
+            # with open(file='/Users/songyunlong/Desktop/ddpg200-tanh.txt', mode='a') as f:
+            #     f.write(data_str+'\n')
             print(data_str)
             # print('episode {0} slsqp latency: {1:.4}'.format(episode, latency_slsqp/4))
 if __name__ == '__main__':
