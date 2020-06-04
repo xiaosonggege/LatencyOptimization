@@ -88,8 +88,8 @@ def gibbssampling():
                 np.hstack((average_latencys, np.array([[latency_total/4]])))
             data_str = 'episode {0}, latency: {1:.4}'.format(episode, latency_total/4)
             data_str_2 = ' '.join([str(e) for e in average_latencys.ravel().tolist()])
-            with open(file='/Users/songyunlong/Desktop/gibbs.txt', mode='w') as f:
-                f.write(data_str_2)
+            # with open(file='/Users/songyunlong/Desktop/gibbs.txt', mode='w') as f:
+            #     f.write(data_str_2)
             print(data_str)
 
 if __name__ == '__main__':

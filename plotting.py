@@ -48,7 +48,6 @@ def plot1(regex = re.compile(pattern='-*\d+\.\d+')):
     with open(file=r'/Users/songyunlong/Desktop/实验室/时延模型ddpg/ddpg_file/gibbs.txt', mode='r') as f:
         line_str = f.readline()
         gibbs = np.array([float(i) for i in line_str.split(' ')])
-        gibbs = np.where(gibbs<150, gibbs, 150)
     fig, ax = plt.subplots(ncols=1, nrows=1)
     x = [i for i in range(1, 101)]
     ax.plot(x_spline_new, kesi(spline(x, ddpg[:, -1])(x_spline_new),2), c='r', label='DDPG')

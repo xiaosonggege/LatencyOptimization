@@ -18,13 +18,21 @@ class DynamicEnvironment:
     Qc_max = 1e2 #
     Rm_max = 1e5 #Hz
     Qm_max = 1e3 * 500 #1000为用户数，实际可以考虑修改
+    rng = np.random.RandomState(0)
 
     @staticmethod
-    def next_state(loc, scale):
+    def next_state(loc, scale, limit_max:np.float):
+        """
+
+        :param loc:
+        :param scale:
+        :param limit_max:
+        :return:
+        """
         next_value = np.random.normal(loc=loc, scale=scale, size=1)
         if next_value[0] > loc:
             next_value = 2 * loc - next_value
-        return next_value
+        return min(next_value, limit_max)
 
     def _client_status_update(self, clients_v:np.ndarray, clients_pos:np.ndarray):
         """"""
@@ -47,6 +55,51 @@ class DynamicEnvironment:
             clients_v[need_to_change_vy, -1] = -clients_v[need_to_change_vy, -1]
         # print(type(clients_v), clients_v.dtype, type(clients_pos), clients_pos.dtype)
         clients_pos += clients_v
+        return clients_v, clients_pos
+
+    def _client_status_update2(self, clients_a:np.ndarray, clients_v:np.ndarray, clients_pos:np.ndarray):
+        tau = 50 #单位为m,边界范围阈值，不同于服务器服务范围内边界，此处是另外一个定义
+        theta_miu = 0.15
+        miu = np.zeros(shape=(clients_v.shape[0], 1), dtype=np.float)
+        sigma = 0.2
+        x_l, x_r, y_l, y_r = 0, self._x_map, 0, self._y_map #道路网络边界
+        acc_max = (20, 20) #反向加速度矢量
+        #更新加速度
+        #所有情况均需要的ou随机过程更新
+        self._clients_a = self._clients_a + theta_miu * (miu - self._clients_a) + \
+                          sigma * DynamicEnvironment.rng.normal(loc=0, scale=self._delta_t)
+        #对x坐标处于边界范围的施加反向加速度
+        need_to_add_a_left = clients_pos[0] > x_r - tau #处于右边界中
+        need_to_add_a_right = clients_pos[0] < x_l + tau #处于左边界中
+        if True in need_to_add_a_left:
+            direct_none_guiyi_xl = clients_pos[need_to_add_a_left, 0] - x_l
+            direct_guiyi_xl = direct_none_guiyi_xl / np.matmul(direct_none_guiyi_xl[np.newaxis, :], direct_none_guiyi_xl[:, np.newaxis])
+            self._clients_a[need_to_add_a_left, 0] += acc_max[0] * direct_guiyi_xl
+        if True in need_to_add_a_right:
+            direct_none_guiyi_xr = clients_pos[need_to_add_a_right] - x_r
+            direct_guiyi_xr = direct_none_guiyi_xr / np.matmul(direct_none_guiyi_xr[np.newaxis, :], direct_none_guiyi_xr[:, np.newaxis])
+            self._clients_a[need_to_add_a_right, 0] += acc_max[0] * direct_guiyi_xr
+
+        # 对x坐标处于边界范围的施加反向加速度
+        need_to_add_a_down = clients_pos[-1] > y_r - tau  # 处于上边界中
+        need_to_add_a_up = clients_pos[-1] < y_l + tau  # 处于下边界中
+        if True in need_to_add_a_down:
+            direct_none_guiyi_yl = clients_pos[need_to_add_a_down, -1] - y_l
+            direct_guiyi_yl = direct_none_guiyi_yl / np.matmul(direct_none_guiyi_yl[np.newaxis, :],
+                                                               direct_none_guiyi_yl[:, np.newaxis])
+            self._clients_a[need_to_add_a_down, 0] += acc_max[-1] * direct_guiyi_yl
+        if True in need_to_add_a_up:
+            direct_none_guiyi_yr = clients_pos[need_to_add_a_up] - y_r
+            direct_guiyi_yr = direct_none_guiyi_yr / np.matmul(direct_none_guiyi_yr[np.newaxis, :],
+                                                               direct_none_guiyi_yr[:, np.newaxis])
+            self._clients_a[need_to_add_a_up, -1] += acc_max[-1] * direct_guiyi_yr
+
+        #更新速度
+        clients_v = clients_v + self._clients_a * self._delta_t
+        #不得超过限速阈值
+        clients_v = np.where(clients_v>DynamicEnvironment.vxy_max, DynamicEnvironment.vxy_max, clients_v)
+        #更新位置
+        clients_pos = clients_v + clients_v * self._delta_t
         return clients_v, clients_pos
 
     def __init__(self):
@@ -98,44 +151,75 @@ class DynamicEnvironment:
         Rc(2): obclient本地计算速率
         Rm(3): MEC端任务计算速率
         """
-        next_state_func = np.frompyfunc(DynamicEnvironment.next_state, 2, 1)
-        #将移动速度在当前值基础上增减, Dx=21
+        self._delta_t = 1 #动态环境更新时间
+        next_state_func = np.frompyfunc(DynamicEnvironment.next_state, 3, 1)
         #历史速度
         clients_v = self.map.clients_v
-        # print(clients_v.dtype)
-        clients_v_new = np.asarray(next_state_func(clients_v, 21), 'float32')
-        # print(clients_v_new.shape)
-        # print(clients_v_new.dtype)
-        #除目标client之外其它client的位置更新
-        clients_v_new, clients_pos_new = self._client_status_update(clients_v=clients_v_new, clients_pos=self.map.clients_pos)
+        #################直接对v从正态分布中采样更新################
+        # # 将移动速度在当前值基础上增减, Dx=21
+        # clients_v_new = np.asarray(next_state_func(clients_v, 21), 'float32')
+        #
+        # #除目标client之外其它client的位置更新
+        # clients_v_new, clients_pos_new = self._client_status_update(clients_v=clients_v_new, clients_pos=self.map.clients_pos)
+
+        #################用ou随机过程更新加速度，进而更新v###################
+        a_init = 2 #m/s^2 加速度初始值
+        d_a_init = 0.5 #加速度初始值方差
+        if not hasattr(self, '_clients_a'):
+            self._clients_a = DynamicEnvironment.rng.normal(loc=a_init, scale=d_a_init)
+        clients_v_new, clients_pos_new = self._client_status_update2(clients_a=self._clients_a,
+                                                                     clients_v=clients_v,
+                                                                     clients_pos=self.map.clients_pos)
         #将本地计算速率在当前值基础上增减, Dx=100
+        #R_t*delta_t-yita表示在t-1时刻R_t值的基础上减一个小量确保不越界
         R_client = self.map.clients_R_client
-        R_client_new = np.asarray(next_state_func(R_client, 100), 'float32')
+        yita = 0.01
+        #方差
+        rou_R_client = 100
+        R_client_new = np.asarray(next_state_func(R_client*(1-yita), rou_R_client, DynamicEnvironment.Rc_max), 'float32')
         #将云端计算速率在当前值基础上增减, Dx=6000
+        #方差
+        rou_R_mec = 6000
         mecservers_R_MEC = self.map.MECservers_R_MEC
-        mecservers_R_MEC_new = np.asarray(next_state_func(mecservers_R_MEC, 6000), 'float64')
+        mecservers_R_MEC_new = np.asarray(next_state_func(mecservers_R_MEC*(1-yita), rou_R_mec, DynamicEnvironment.Rc_max), 'float64')
         #将云端任务量存储阈值在当前那值基础上增减, Dx=10000
+        #方差
+        rou_q_mec = 10000
         q_MEC = self.map.Q_MEC
-        q_MEC_new = np.asarray(next_state_func(q_MEC, 10000), 'float32')
+        D_pre_mec = np.sum(self.map.ob_client.D_vector * self.get_alpha())
+        q_MEC_new = np.asarray(next_state_func(q_MEC-yita*D_pre_mec, rou_q_mec, DynamicEnvironment.Qm_max), 'float32')
         #除目标用户外的其它用户属性更新
         self.map.client_vector = (R_client_new, clients_v_new, clients_pos_new[:, 0], clients_pos_new[:, -1])
         # print('client_vector is finished')
+        #得到上一时刻的计算任务量D，在本次计算任务中减去确保，假定上次任务量在下一秒更新时有残留
+        D_pre_c = np.sum(self.map.ob_client.D_vector * (1 - self.get_alpha()))
         #更新MEC服务器
         self.map.mecserver_vector = (mecservers_R_MEC_new, q_MEC_new)
         # print('mecserver_vector is finished')
         #将本地任务量存储阈值在当前值基础上增减, DX=15
+        #方差
+        rou_q_c = 15
         obclient_Q_client = self.map.ob_client.Q_client
-        obclient_Q_client_new = np.asarray(next_state_func(obclient_Q_client, 15), 'float64')[0]
+        obclient_Q_client_new = np.asarray(next_state_func(obclient_Q_client-yita*D_pre_c, rou_q_c, DynamicEnvironment.Qc_max), 'float64')[0]
         #获取目标client的属性，计算其更新属性
         obclient = self.map.ob_client
         r_client = obclient.R_client
-        r_client_new = np.asarray(next_state_func(r_client, 100), 'float32')[0]
+        #方差
+        rou_r_c = 100
+        r_client_new = np.asarray(next_state_func(r_client, rou_r_c, DynamicEnvironment.Rc_max), 'float32')[0]
         # print('r', r_client_new, r_client_new[0])
         v = obclient.v
-        v_new = np.asarray(next_state_func(v, 21), 'float32')
         axis = obclient.axis
-        obclient_v_new, obclient_pos_new = self._client_status_update(clients_v=np.array(v_new)[np.newaxis, :],
-                                                                      clients_pos=np.array(axis)[np.newaxis, :])
+        #################直接对v从正态分布中采样更新################
+        # v_new = np.asarray(next_state_func(v, 21), 'float32')
+        # obclient_v_new, obclient_pos_new = self._client_status_update(clients_v=np.array(v_new)[np.newaxis, :],
+        #                                                               clients_pos=np.array(axis)[np.newaxis, :])
+        #################用ou随机过程更新加速度，进而更新v###################
+        if not hasattr(self, '_obclient_a'):
+            self._obclient_a = DynamicEnvironment.rng.normal(loc=a_init, scale=d_a_init)
+        obclient_v_new, obclient_pos_new = self._client_status_update2(clients_a=self._obclient_a,
+                                                                       clients_v=np.array(v)[np.newaxis, :],
+                                                                       clients_pos=np.array(axis)[np.newaxis, :])
         #latency
         self.map.ob_client.Q_client = obclient_Q_client_new
         return r_client_new, obclient_v_new, obclient_pos_new, mecservers_R_MEC_new.mean(), \
