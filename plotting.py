@@ -44,11 +44,17 @@ def plot1(regex = re.compile(pattern='-*\d+\.\d+')):
     with open(file=r'/Users/songyunlong/Desktop/实验室/时延模型ddpg/ddpg_file/slsqp.txt', mode='r') as f:
         line_str = f.readline()
         slsqp = np.array([float(i) for i in line_str.split(' ')])
+    #gibbs采样结果
+    with open(file=r'/Users/songyunlong/Desktop/实验室/时延模型ddpg/ddpg_file/gibbs.txt', mode='r') as f:
+        line_str = f.readline()
+        gibbs = np.array([float(i) for i in line_str.split(' ')])
+        gibbs = np.where(gibbs<150, gibbs, 150)
     fig, ax = plt.subplots(ncols=1, nrows=1)
     x = [i for i in range(1, 101)]
-    ax.plot(x_spline_new, kesi(spline(x, ddpg[:, -1])(x_spline_new),2), c='r', label='ddpg')
-    ax.plot(x_spline_new, kesi(spline(x, slsqp)(x_spline_new),2), c='b', label='slsqp')
-    ax.legend(loc='upper right')
+    ax.plot(x_spline_new, kesi(spline(x, ddpg[:, -1])(x_spline_new),2), c='r', label='DDPG')
+    ax.plot(x_spline_new, kesi(spline(x, slsqp)(x_spline_new),2), c='b', label='SLSQP')
+    ax.plot(x_spline_new, kesi(spline(x, gibbs)(x_spline_new),2), c='g', label='Gibbs sampling')
+    ax.legend(loc='upper left')
     ax.set_xlabel('episode/time')
     ax.set_ylabel('average latency/s')
     ax.grid(axis='x', linestyle='-.')
@@ -295,8 +301,8 @@ def time_compare():
     fig.show()
 
 if __name__ == '__main__':
-    # plot1()
+    plot1()
     # plot2()
     # plot3()
     # plot4()
-    time_compare()
+    # time_compare()
