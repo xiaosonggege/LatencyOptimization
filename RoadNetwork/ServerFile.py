@@ -121,6 +121,9 @@ class MECServer(Server):
         :return: MEC服务器当前剩余存储容量
         """
         return self.__Q_MEC - self.__Q_used
+    @property
+    def Q_MEC(self):
+        return self.__Q_MEC
 
     def client_pos_to_MECserver(self, client):
         """

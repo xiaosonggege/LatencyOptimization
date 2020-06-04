@@ -49,5 +49,49 @@ def trainingAndOptimization():
             #     f.write(data_str+'\n')
             print(data_str)
             # print('episode {0} slsqp latency: {1:.4}'.format(episode, latency_slsqp/4))
+
+def gibbssampling():
+    """
+    用Gibbs抽样对得到各时刻的动作向量
+    """
+    rng = np.random.RandomState(0)
+    def gibbs(alphas:np.ndarray, Qc:np.float, Qm:np.float, Ru:np.float, Rm:np.float, ts:np.float, D:np.ndarray):
+        """
+        Gibbs抽样
+        :return:
+        """
+        for i in range(alphas.shape[0]):
+            alpha_lower = 1 - (Qc - np.matmul(alphas[np.newaxis, :],D[:, np.newaxis]) + alphas[i]*D[i]) / D[i]
+            lower = max(0, alpha_lower.ravel()[0])
+            alpha_upper1 = (ts / (1 / Ru + 1 / Rm) - np.matmul(alphas[np.newaxis, :],D[:, np.newaxis]) +
+                            alphas[i]*D[i]) / D[i]
+            alpha_upper2 = (Qc - np.matmul(alphas[np.newaxis, :],D[:, np.newaxis]) + alphas[i]*D[i]) / D[i]
+            upper = min(1, alpha_upper1.ravel()[0], alpha_upper2.ravel()[0])
+            alphas[i] = rng.uniform(low=lower, high=upper)
+        return alphas
+
+    with DynamicEnvironment() as d:
+        average_latencys = None #记录每个episode的整条采样链的时延均值
+        for episode in range(100):
+            latency_total = 0 #时延输出
+            #测试时间
+            # start = time.time()
+            for step in range(4):
+                Qc, Qm, Ru, Rm, ts, D = d.get_some_param()
+                alphas = np.zeros(shape=D.shape)
+                alphas = gibbs(alphas=alphas, Qc=Qc, Qm=Qm, Ru=Ru, Rm=Rm, ts=ts, D=D)
+                latency = d.step_gibbs_sampling(alphas=alphas)
+                latency_total += latency
+            # end = time.time()
+            # print('100轮时间为%s' % (end-start))
+            average_latencys = np.array([[latency_total/4]]) if average_latencys is None else\
+                np.hstack((average_latencys, np.array([[latency_total/4]])))
+            data_str = 'episode {0}, latency: {1:.4}'.format(episode, latency_total/4)
+            data_str_2 = ' '.join([str(e) for e in average_latencys.ravel().tolist()])
+            with open(file='/Users/songyunlong/Desktop/gibbs.txt', mode='w') as f:
+                f.write(data_str_2)
+            print(data_str)
+
 if __name__ == '__main__':
-    trainingAndOptimization()
+    # trainingAndOptimization()
+    gibbssampling()

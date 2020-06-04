@@ -371,7 +371,10 @@ class Map:
         t1 = (axis_b[0] - self.__obclient.axis[0]) / self.__obclient.v[0]
         t2 = (axis_b[0] - self.__obclient.axis[0]) / self.__obclient.v[0]
         self.__t_stay = t1 if t1 else t2
-
+    #t_stay描述符
+    @property
+    def t_stay(self):
+        return self.__t_stay
     #描述符
     MECserver_for_obclient = AttributePropertyMEC('_Map__MECserver_for_obclient') #画图
     Obclient = AttributePropertyOb('_Map__obclient') #画图
@@ -400,8 +403,12 @@ class Map:
 
             return R_transmit
         # result = sympy.integrate(f, 0, self.__t_stay) / self.__t_stay
-        result = si.quad(f, 0, self.__t_stay)[0] / self.__t_stay
-        return result
+        self._R_transmit = si.quad(f, 0, self.__t_stay)[0] / self.__t_stay
+        # return self._R_transmit
+
+    @property
+    def R_transmit(self):
+        return self._R_transmit
 
     def time_transmitting_and_MEC_calculating(self, alphas):
         """
@@ -412,7 +419,8 @@ class Map:
         # 目标client按权值分配需要在本地执行和需要卸载的计算任务
         task_MEC_all = self.__obclient.task_distributing(alphas=alphas)
         # 卸载任务时间
-        time_transmitting_calculating = np.sum(self.__obclient.D_vector * (1 - alphas)) / self.transmitting_R()
+        self.transmitting_R()
+        time_transmitting_calculating = np.sum(self.__obclient.D_vector * (1 - alphas)) / self._R_transmit #self.transmitting_R()
 
         # MECserver计算卸载任务所需时间
         time_MEC_calculating = self.__MECserver_for_obclient.MEC_calc_time(D_MEC=task_MEC_all)

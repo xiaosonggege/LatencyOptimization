@@ -234,6 +234,28 @@ class DynamicEnvironment:
 
         return s, float(r), float(latency)
 
+    def step_gibbs_sampling(self, alphas):
+        """
+        适用于吉布斯采样的状态更新
+        :param alphas: 状态向量
+        :return:
+        """
+        # 更新状态向量
+        # self.change_environment()
+        self.map.alphas = alphas
+        _, _, _, latency = self.get_latency(r_client_new=self.map.ob_client.R_client,
+                                            obclient_v_new=self.map.ob_client.v,
+                                            obclient_pos_new=self.map.ob_client.axis)
+        return latency
+
+    def get_some_param(self):
+        """
+        返回当前时刻目标用户的Qc, MEC的Qm, 传输速率Ru, MEC的Rm, ts, D
+        :return: Qc, Qm, Ru, Rm, ts, D
+        """
+        return self.map.ob_client.Q_client, self.map.mecserver_for_obclient, self.map.R_transmit, \
+               self.map.MECservers_R_MEC, self.map.t_stay, self.map.ob_client.D_vector
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
 

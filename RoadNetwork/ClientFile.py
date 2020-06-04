@@ -82,7 +82,6 @@ class Client:
     def R_client(self, value):
         self.__R_client = value
 
-
 class ObjectClient(Client):
     """
     目标用户类型
