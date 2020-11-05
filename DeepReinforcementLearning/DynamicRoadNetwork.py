@@ -110,7 +110,7 @@ class DynamicEnvironment:
         self._R_client_mean = 1e3 #HZ
         self._R_MEC_mean = 1e5 #Hz  #单个计算任务量均值在1000bit
         self._vxy_client_range = (-60, 60)
-        self._T_epsilon = 300 #s
+        self._T_epsilon = 1 #s
         self._Q_client = 1e2
         self._Q_MEC = 1e3 * self._client_num
         self._server_r = 1 / np.sqrt(2*self._MECserver_num) * self._x_map
