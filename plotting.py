@@ -60,13 +60,13 @@ def plot1(regex = re.compile(pattern='-*\d+\.\d+')):
     ax.grid(axis='y', linestyle='-.')
     # ax[0].set_title('The average latency per episode')
 
-    # ax[1].plot(x_spline_new, kesi(x=spline(x, ddpg[:, -1]-slsqp)(x_spline_new), flag=2), label=r'$Df$')
-    # ax[1].legend(loc='upper right')
-    # ax[1].set_xlabel('episode/time')
-    # ax[1].set_ylabel(r'$Df$')
-    # ax[1].grid(axis='x', linestyle='-.')
-    # ax[1].grid(axis='y', linestyle='-.')
-    # ax[1].set_title('The average latency per episode')
+    ax[1].plot(x_spline_new, kesi(x=spline(x, ddpg[:, -1]-slsqp)(x_spline_new), flag=2), label=r'$Df$')
+    ax[1].legend(loc='upper right')
+    ax[1].set_xlabel('episode/time')
+    ax[1].set_ylabel(r'$Df$')
+    ax[1].grid(axis='x', linestyle='-.')
+    ax[1].grid(axis='y', linestyle='-.')
+    ax[1].set_title('The average latency per episode')
     fig.show()
 
 def plot2(regex = re.compile(pattern='-*\d+\.\d+')):
@@ -172,7 +172,7 @@ def plot3(regex = re.compile(pattern='-*\d+\.\d+')):
             ddpg_batch3 = line_array if ddpg_batch3 is None else np.vstack((ddpg_batch3, line_array))
 
     # reward
-    fig, ax = plt.subplots(ncols=1, nrows=2)
+    fig, ax = plt.subplots(figsize=(20, 6), ncols=2, nrows=1)
     x = range(1, 101)
     ax[0].plot(x_spline_new, kesi(spline(x, ddpg_batch1[:, 0] * 100)(x_spline_new),1), c='r', label='Batch size=1000')
     ax[0].plot(x_spline_new, kesi(spline(x, ddpg_batch2[:, 0] * 100)(x_spline_new),1), c='g', label='Batch size=500')
@@ -182,7 +182,7 @@ def plot3(regex = re.compile(pattern='-*\d+\.\d+')):
     ax[0].set_ylabel('Reward')
     ax[0].grid(axis='x', linestyle='-.')
     ax[0].grid(axis='y', linestyle='-.')
-    ax[0].set_title('(a)The total reward value per episode', y=-0.5)
+    ax[0].set_title('(a)The total reward value per episode', y=-0.15)
     # fig.show()
 
     # latency
@@ -196,8 +196,22 @@ def plot3(regex = re.compile(pattern='-*\d+\.\d+')):
     ax[1].set_ylabel('Average latency/s')
     ax[1].grid(axis='x', linestyle='-.')
     ax[1].grid(axis='y', linestyle='-.')
-    ax[1].set_title('(b)The average latency per episode', y=-0.5)
+    ax[1].set_title('(b)The average latency per episode', y=-0.15)
     fig.show()
+
+    # 单独画
+    # fig, ax = plt.subplots(figsize=(10, 6))
+    # x = range(1, 101)
+    # ax.plot(x_spline_new, kesi(spline(x, ddpg_batch1[:, 0] * 100)(x_spline_new),1), c='r', label='Batch size=1000')
+    # ax.plot(x_spline_new, kesi(spline(x, ddpg_batch2[:, 0] * 100)(x_spline_new),1), c='g', label='Batch size=500')
+    # ax.plot(x_spline_new, kesi(spline(x, ddpg_batch3[:, 0] * 100)(x_spline_new),1), c='b', label='Batch size=700')
+    # ax.legend()
+    # ax.set_xlabel('Training epochs')
+    # ax.set_ylabel('Reward')
+    # ax.grid(axis='x', linestyle='-.')
+    # ax.grid(axis='y', linestyle='-.')
+    # ax.set_title('(a)The total reward value per episode', y=-0.15)
+    # fig.show()
 
 
 def plot4(regex = re.compile(pattern='-*\d+\.\d+')):
@@ -329,7 +343,7 @@ def compare_with_slsqp_ddpg():
 if __name__ == '__main__':
     # plot1()
     # plot2()
-    # plot3()
+    plot3()
     # plot4()
     # time_compare()
-    compare_with_slsqp_ddpg()
+    # compare_with_slsqp_ddpg()
